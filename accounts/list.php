@@ -134,7 +134,7 @@ include '../includes/header.php';
                         <ul class="pagination justify-content-center">
                             <?php if ($page > 1): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>">پچھلا</a>
+                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>"><?php echo t('previous'); ?></a>
                                 </li>
                             <?php endif; ?>
                             
@@ -146,7 +146,7 @@ include '../includes/header.php';
                             
                             <?php if ($page < $totalPages): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>">اگلا</a>
+                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>"><?php echo t('next'); ?></a>
                                 </li>
                             <?php endif; ?>
                         </ul>
