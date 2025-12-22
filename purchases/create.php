@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             if (empty($validItems)) {
-                throw new Exception('براہ کرم جنس کی تفصیلات درج کریں');
+                throw new Exception(t('please_enter_item_details'));
             }
             
             $netAmount = $totalAmount - $discount;
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             $db->commit();
-            $success = 'خرید کامیابی سے ریکارڈ ہو گئی';
+            $success = t('purchase_added_success');
             $_POST = [];
         } catch (Exception $e) {
             $db->rollBack();
@@ -245,6 +245,8 @@ include '../includes/header.php';
     </div>
 </div>
 
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 $(document).ready(function() {
     // Add new row
@@ -276,7 +278,7 @@ $(document).ready(function() {
             $(this).closest('tr').remove();
             calculateTotal();
         } else {
-            alert('کم از کم ایک جنس ضروری ہے');
+            alert('<?php echo t('please_add_item'); ?>');
         }
     });
     

@@ -40,8 +40,8 @@ include '../includes/header.php';
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
         <h1><i class="fas fa-warehouse"></i> سٹاک کھاتہ</h1>
-        <form method="GET" class="d-flex"></form>
-            <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="تلاش کریں...">
+        <form method="GET" class="d-flex">
+            <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-search"></i>
             </button>

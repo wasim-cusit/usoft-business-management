@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $description = sanitizeInput($_POST['description'] ?? '');
     
     if (empty($itemName)) {
-        $error = 'براہ کرم جنس کا نام درج کریں';
+        $error = t('please_enter_item_name');
     } else {
         try {
             $db = getDB();
@@ -39,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt = $db->prepare("INSERT INTO stock_movements (item_id, movement_date, movement_type, quantity_in, balance_quantity) VALUES (?, ?, 'opening', ?, ?)");
             $stmt->execute([$itemId, date('Y-m-d'), $openingStock, $openingStock]);
             
-            $success = 'جنس کامیابی سے شامل ہو گئی';
+            $success = t('item_added_success');
             $_POST = [];
         } catch (PDOException $e) {
-            $error = 'جنس شامل کرنے میں خرابی: ' . $e->getMessage();
+            $error = t('error_adding_item') . ': ' . $e->getMessage();
         }
     }
 }

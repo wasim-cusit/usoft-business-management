@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'کیش JV';
+$pageTitle = 'journal';
 $success = '';
 $error = '';
 
@@ -23,11 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $narration = sanitizeInput($_POST['narration'] ?? '');
     
     if (empty($debitAccountId) || empty($creditAccountId)) {
-        $error = 'براہ کرم دونوں اکاؤنٹس منتخب کریں';
+        $error = t('both_accounts_required');
     } elseif ($debitAccountId == $creditAccountId) {
-        $error = 'ڈیبٹ اور کریڈٹ اکاؤنٹ ایک جیسے نہیں ہو سکتے';
+        $error = t('accounts_cannot_same');
     } elseif ($amount <= 0) {
-        $error = 'رقم درست درج کریں';
+        $error = t('please_enter_amount');
     } else {
         try {
             $db->beginTransaction();
@@ -46,11 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->execute([$transactionNo . '-C', $transactionDate, $creditAccountId, $amount, $narration, $_SESSION['user_id']]);
             
             $db->commit();
-            $success = 'جرنل واؤچر کامیابی سے ریکارڈ ہو گیا';
+            $success = t('journal_voucher_success');
             $_POST = [];
         } catch (PDOException $e) {
             $db->rollBack();
-            $error = 'جرنل واؤچر ریکارڈ کرنے میں خرابی';
+            $error = t('error_recording_journal') . ': ' . $e->getMessage();
         }
     }
 }
@@ -59,14 +59,14 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-exchange-alt"></i> کیش JV</h1>
+    <h1><i class="fas fa-exchange-alt"></i> <?php echo t('journal'); ?></h1>
 </div>
 
 <div class="row">
     <div class="col-md-8 mx-auto">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">جرنل واؤچر کی معلومات</h5>
+                <h5 class="mb-0"><?php echo t('transaction_info'); ?></h5>
             </div>
             <div class="card-body">
                 <?php if ($success): ?>
@@ -85,15 +85,15 @@ include '../includes/header.php';
                 
                 <form method="POST" action="">
                     <div class="mb-3">
-                        <label class="form-label">تاریخ <span class="text-danger">*</span></label>
+                        <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" name="transaction_date" value="<?php echo $_POST['transaction_date'] ?? date('Y-m-d'); ?>" required>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">ڈیبٹ اکاؤنٹ <span class="text-danger">*</span></label>
+                            <label class="form-label"><?php echo t('debit'); ?> <?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
                             <select class="form-select" name="debit_account_id" required>
-                                <option value="">-- منتخب کریں --</option>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?php echo $account['id']; ?>" <?php echo (($_POST['debit_account_id'] ?? '') == $account['id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($account['account_name']); ?>
@@ -103,9 +103,9 @@ include '../includes/header.php';
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">کریڈٹ اکاؤنٹ <span class="text-danger">*</span></label>
+                            <label class="form-label"><?php echo t('credit'); ?> <?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
                             <select class="form-select" name="credit_account_id" required>
-                                <option value="">-- منتخب کریں --</option>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
                                 <?php foreach ($accounts as $account): ?>
                                     <option value="<?php echo $account['id']; ?>" <?php echo (($_POST['credit_account_id'] ?? '') == $account['id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($account['account_name']); ?>
@@ -116,21 +116,21 @@ include '../includes/header.php';
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">رقم <span class="text-danger">*</span></label>
+                        <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" class="form-control" name="amount" value="<?php echo $_POST['amount'] ?? ''; ?>" required min="0.01">
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">تفصیل</label>
+                        <label class="form-label"><?php echo t('narration'); ?></label>
                         <textarea class="form-control" name="narration" rows="3"><?php echo $_POST['narration'] ?? ''; ?></textarea>
                     </div>
                     
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-save"></i> محفوظ کریں
+                            <i class="fas fa-save"></i> <?php echo t('save'); ?>
                         </button>
                         <a href="<?php echo BASE_URL; ?>transactions/list.php" class="btn btn-secondary btn-lg w-100 mt-2">
-                            <i class="fas fa-list"></i> فہرست دیکھیں
+                            <i class="fas fa-list"></i> <?php echo t('view'); ?> <?php echo t('all_transactions'); ?>
                         </a>
                     </div>
                 </form>

@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'کیش جمع';
+$pageTitle = 'credit';
 $success = '';
 $error = '';
 
@@ -22,9 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $narration = sanitizeInput($_POST['narration'] ?? '');
     
     if (empty($accountId)) {
-        $error = 'براہ کرم اکاؤنٹ منتخب کریں';
+        $error = t('please_select_account');
     } elseif ($amount <= 0) {
-        $error = 'رقم درست درج کریں';
+        $error = t('please_enter_amount');
     } else {
         try {
             $db->beginTransaction();
@@ -39,11 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->execute([$transactionNo, $transactionDate, $accountId, $amount, $narration, $_SESSION['user_id']]);
             
             $db->commit();
-            $success = 'کیش جمع کامیابی سے ریکارڈ ہو گیا';
+            $success = t('transaction_recorded_success');
             $_POST = [];
         } catch (PDOException $e) {
             $db->rollBack();
-            $error = 'لین دین ریکارڈ کرنے میں خرابی';
+            $error = t('error_recording_transaction') . ': ' . $e->getMessage();
         }
     }
 }
@@ -52,14 +52,14 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-arrow-up"></i> کیش جمع</h1>
+    <h1><i class="fas fa-arrow-up"></i> <?php echo t('credit'); ?></h1>
 </div>
 
 <div class="row">
     <div class="col-md-6 mx-auto">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">کیش جمع کی معلومات</h5>
+                <h5 class="mb-0"><?php echo t('transaction_info'); ?></h5>
             </div>
             <div class="card-body">
                 <?php if ($success): ?>
@@ -78,14 +78,14 @@ include '../includes/header.php';
                 
                 <form method="POST" action="">
                     <div class="mb-3">
-                        <label class="form-label">تاریخ <span class="text-danger">*</span></label>
+                        <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" name="transaction_date" value="<?php echo $_POST['transaction_date'] ?? date('Y-m-d'); ?>" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">اکاؤنٹ <span class="text-danger">*</span></label>
+                        <label class="form-label"><?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
                         <select class="form-select" name="account_id" required>
-                            <option value="">-- منتخب کریں --</option>
+                            <option value="">-- <?php echo t('select'); ?> --</option>
                             <?php foreach ($accounts as $account): ?>
                                 <option value="<?php echo $account['id']; ?>" <?php echo (($_POST['account_id'] ?? '') == $account['id']) ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($account['account_name']); ?>
@@ -95,21 +95,21 @@ include '../includes/header.php';
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">رقم <span class="text-danger">*</span></label>
+                        <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" class="form-control" name="amount" value="<?php echo $_POST['amount'] ?? ''; ?>" required min="0.01">
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">تفصیل</label>
+                        <label class="form-label"><?php echo t('narration'); ?></label>
                         <textarea class="form-control" name="narration" rows="3"><?php echo $_POST['narration'] ?? ''; ?></textarea>
                     </div>
                     
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-save"></i> محفوظ کریں
+                            <i class="fas fa-save"></i> <?php echo t('save'); ?>
                         </button>
                         <a href="<?php echo BASE_URL; ?>transactions/list.php" class="btn btn-secondary btn-lg w-100 mt-2">
-                            <i class="fas fa-list"></i> فہرست دیکھیں
+                            <i class="fas fa-list"></i> <?php echo t('view'); ?> <?php echo t('all_transactions'); ?>
                         </a>
                     </div>
                 </form>

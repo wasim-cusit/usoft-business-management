@@ -30,9 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $rates = $_POST['rate'] ?? [];
     
     if (empty($accountId)) {
-        $error = 'براہ کرم کسٹمر منتخب کریں';
+        $error = t('please_select_customer');
     } elseif (empty($itemIds) || !is_array($itemIds)) {
-        $error = 'براہ کرم کم از کم ایک جنس شامل کریں';
+        $error = t('please_add_item');
     } else {
         try {
             $db->beginTransaction();
@@ -52,11 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $item = $stmt->fetch();
                     
                     if (!$item) {
-                        throw new Exception('جنس نہیں ملی');
+                        throw new Exception(t('item_not_found'));
                     }
                     
                     if ($item['current_stock'] < $qty) {
-                        throw new Exception($item['item_name'] . ' کا سٹاک ناکافی ہے');
+                        throw new Exception($item['item_name'] . ' ' . t('insufficient_stock'));
                     }
                     
                     $amount = $qty * $rate;
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             if (empty($validItems)) {
-                throw new Exception('براہ کرم جنس کی تفصیلات درج کریں');
+                throw new Exception(t('please_enter_item_details'));
             }
             
             $netAmount = $totalAmount - $discount;
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             $db->commit();
-            $success = 'فروخت کامیابی سے ریکارڈ ہو گئی';
+            $success = t('sale_added_success');
             $_POST = [];
         } catch (Exception $e) {
             $db->rollBack();
@@ -260,6 +260,8 @@ include '../includes/header.php';
     </div>
 </div>
 
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 $(document).ready(function() {
     // Add new row
@@ -291,7 +293,7 @@ $(document).ready(function() {
             $(this).closest('tr').remove();
             calculateTotal();
         } else {
-            alert('کم از کم ایک جنس ضروری ہے');
+            alert('<?php echo t('please_add_item'); ?>');
         }
     });
     
@@ -302,7 +304,7 @@ $(document).ready(function() {
         var stock = parseFloat(row.find('.item-select option:selected').data('stock')) || 0;
         
         if (qty > stock) {
-            alert('سٹاک ناکافی ہے! موجودہ سٹاک: ' + stock);
+            alert('<?php echo t('insufficient_stock'); ?>! <?php echo t('current_stock'); ?>: ' + stock);
             $(this).val(stock);
             qty = stock;
         }
