@@ -141,7 +141,7 @@ include '../includes/header.php';
                                         <tr>
                                             <td><?php echo htmlspecialchars($sale['sale_no']); ?></td>
                                             <td><?php echo formatDate($sale['sale_date']); ?></td>
-                                            <td><?php echo htmlspecialchars($sale['account_name']); ?></td>
+                                            <td><?php echo displayAccountNameFull($sale); ?></td>
                                             <td><?php echo formatCurrency($sale['net_amount']); ?></td>
                                             <td><?php echo formatCurrency($sale['paid_amount']); ?></td>
                                             <td>
