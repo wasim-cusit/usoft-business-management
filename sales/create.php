@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'سیل شامل کریں';
+$pageTitle = 'add_sale';
 $success = '';
 $error = '';
 
@@ -126,14 +126,14 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-cash-register"></i> سیل شامل کریں</h1>
+    <h1><i class="fas fa-cash-register"></i> <?php echo t('add_sale'); ?></h1>
 </div>
 
 <div class="row">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">فروخت کی معلومات</h5>
+                <h5 class="mb-0"><?php echo t('sale_info'); ?></h5>
             </div>
             <div class="card-body">
                 <?php if ($success): ?>
@@ -153,14 +153,14 @@ include '../includes/header.php';
                 <form method="POST" action="" id="saleForm">
                     <div class="row mb-4">
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">تاریخ <span class="text-danger">*</span></label>
+                            <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="sale_date" value="<?php echo $_POST['sale_date'] ?? date('Y-m-d'); ?>" required>
                         </div>
                         
                         <div class="col-md-5 mb-3">
-                            <label class="form-label">کسٹمر <span class="text-danger">*</span></label>
+                            <label class="form-label"><?php echo t('customer'); ?> <span class="text-danger">*</span></label>
                             <select class="form-select" name="account_id" id="account_id" required>
-                                <option value="">-- منتخب کریں --</option>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
                                 <?php 
                                 $selectedAccountId = $_POST['account_id'] ?? $_GET['account_id'] ?? '';
                                 foreach ($customers as $customer): ?>
@@ -172,35 +172,35 @@ include '../includes/header.php';
                         </div>
                         
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">ریمارکس</label>
+                            <label class="form-label"><?php echo t('remarks'); ?></label>
                             <input type="text" class="form-control" name="remarks" value="<?php echo $_POST['remarks'] ?? ''; ?>">
                         </div>
                     </div>
                     
                     <div class="card mb-4">
                         <div class="card-header bg-light">
-                            <h6 class="mb-0">جنس کی تفصیلات</h6>
+                            <h6 class="mb-0"><?php echo t('item_details'); ?></h6>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table" id="itemsTable">
                                     <thead>
                                         <tr>
-                                            <th style="width: 35%;">جنس</th>
-                                            <th style="width: 15%;">مقدار</th>
-                                            <th style="width: 15%;">قیمت</th>
-                                            <th style="width: 15%;">رقم</th>
-                                            <th style="width: 20%;">عمل</th>
+                                            <th style="width: 35%;"><?php echo t('items'); ?></th>
+                                            <th style="width: 15%;"><?php echo t('quantity'); ?></th>
+                                            <th style="width: 15%;"><?php echo t('rate'); ?></th>
+                                            <th style="width: 15%;"><?php echo t('amount'); ?></th>
+                                            <th style="width: 20%;"><?php echo t('actions'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody id="itemsBody">
                                         <tr>
                                             <td>
                                                 <select class="form-select item-select" name="item_id[]" required>
-                                                    <option value="">-- منتخب کریں --</option>
+                                                    <option value="">-- <?php echo t('select'); ?> --</option>
                                                     <?php foreach ($items as $item): ?>
                                                         <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>" data-stock="<?php echo $item['current_stock']; ?>">
-                                                            <?php echo htmlspecialchars($item['item_name']); ?> (سٹاک: <?php echo $item['current_stock']; ?>)
+                                                            <?php echo htmlspecialchars($item['item_name']); ?> (<?php echo t('stock_label'); ?>: <?php echo $item['current_stock']; ?>)
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -213,27 +213,27 @@ include '../includes/header.php';
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <td colspan="3" class="text-end"><strong>کل رقم:</strong></td>
+                                            <td colspan="3" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
                                             <td><input type="text" class="form-control" id="total_amount" readonly value="0.00"></td>
                                             <td></td>
                                         </tr>
                                         <tr>
-                                            <td colspan="3" class="text-end"><strong>ڈسکاؤنٹ:</strong></td>
+                                            <td colspan="3" class="text-end"><strong><?php echo t('discount'); ?>:</strong></td>
                                             <td><input type="number" step="0.01" class="form-control" name="discount" id="discount" value="0"></td>
                                             <td></td>
                                         </tr>
                                         <tr>
-                                            <td colspan="3" class="text-end"><strong>نیٹ رقم:</strong></td>
+                                            <td colspan="3" class="text-end"><strong><?php echo t('net_amount'); ?>:</strong></td>
                                             <td><input type="text" class="form-control" id="net_amount" readonly value="0.00"></td>
                                             <td></td>
                                         </tr>
                                         <tr>
-                                            <td colspan="3" class="text-end"><strong>وصولی:</strong></td>
+                                            <td colspan="3" class="text-end"><strong><?php echo t('receipt'); ?>:</strong></td>
                                             <td><input type="number" step="0.01" class="form-control" name="paid_amount" id="paid_amount" value="0"></td>
                                             <td></td>
                                         </tr>
                                         <tr>
-                                            <td colspan="3" class="text-end"><strong>بیلنس:</strong></td>
+                                            <td colspan="3" class="text-end"><strong><?php echo t('balance_amount'); ?>:</strong></td>
                                             <td><input type="text" class="form-control" id="balance_amount" readonly value="0.00"></td>
                                             <td></td>
                                         </tr>
@@ -241,17 +241,17 @@ include '../includes/header.php';
                                 </table>
                             </div>
                             <button type="button" class="btn btn-success btn-sm" id="addRow">
-                                <i class="fas fa-plus"></i> جنس شامل کریں
+                                <i class="fas fa-plus"></i> <?php echo t('add_item'); ?>
                             </button>
                         </div>
                     </div>
                     
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-save"></i> محفوظ کریں
+                            <i class="fas fa-save"></i> <?php echo t('save'); ?>
                         </button>
                         <a href="<?php echo BASE_URL; ?>sales/list.php" class="btn btn-secondary btn-lg">
-                            <i class="fas fa-list"></i> فہرست دیکھیں
+                            <i class="fas fa-list"></i> <?php echo t('view_list'); ?>
                         </a>
                     </div>
                 </form>
@@ -304,7 +304,7 @@ $(document).ready(function() {
         var stock = parseFloat(row.find('.item-select option:selected').data('stock')) || 0;
         
         if (qty > stock) {
-            alert('<?php echo t('insufficient_stock'); ?>! <?php echo t('current_stock'); ?>: ' + stock);
+            alert('<?php echo t('insufficient_stock'); ?>! <?php echo t('current_stock_label'); ?>: ' + stock);
             $(this).val(stock);
             qty = stock;
         }
