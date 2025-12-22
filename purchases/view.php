@@ -67,8 +67,8 @@ include '../includes/header.php';
                                 <td><?php echo formatDate($purchase['purchase_date']); ?></td>
                             </tr>
                             <tr>
-                                <th>سپلائر</th>
-                                <td><?php echo htmlspecialchars($purchase['account_name']); ?></td>
+                                <th><?php echo t('supplier'); ?></th>
+                                <td><?php echo displayAccountNameFull($purchase); ?></td>
                             </tr>
                             <tr>
                                 <th>ریمارکس</th>

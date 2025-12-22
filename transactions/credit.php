@@ -88,7 +88,7 @@ include '../includes/header.php';
                             <option value="">-- <?php echo t('select'); ?> --</option>
                             <?php foreach ($accounts as $account): ?>
                                 <option value="<?php echo $account['id']; ?>" <?php echo (($_POST['account_id'] ?? '') == $account['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($account['account_name']); ?>
+                                    <?php echo displayAccountNameFull($account); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

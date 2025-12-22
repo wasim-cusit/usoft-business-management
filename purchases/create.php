@@ -150,7 +150,7 @@ include '../includes/header.php';
                                 $selectedAccountId = $_POST['account_id'] ?? $_GET['account_id'] ?? '';
                                 foreach ($suppliers as $supplier): ?>
                                     <option value="<?php echo $supplier['id']; ?>" <?php echo ($selectedAccountId == $supplier['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($supplier['account_name']); ?>
+                                        <?php echo displayAccountNameFull($supplier); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

@@ -73,12 +73,12 @@ include '../includes/header.php';
                         <td><?php echo htmlspecialchars($account['account_code']); ?></td>
                     </tr>
                     <tr>
-                        <th>کھاتہ کا نام</th>
-                        <td><?php echo htmlspecialchars($account['account_name']); ?></td>
+                        <th><?php echo t('account_name_required'); ?></th>
+                        <td><?php echo displayAccountName($account); ?></td>
                     </tr>
                     <tr>
-                        <th>کھاتہ کا نام (اردو)</th>
-                        <td><?php echo htmlspecialchars($account['account_name_urdu'] ?? '-'); ?></td>
+                        <th><?php echo t('account_name_required'); ?> (<?php echo getLang() == 'ur' ? t('english') : t('urdu'); ?>)</th>
+                        <td><?php echo getLang() == 'ur' ? htmlspecialchars($account['account_name'] ?? '-') : htmlspecialchars($account['account_name_urdu'] ?? '-'); ?></td>
                     </tr>
                     <tr>
                         <th>کھاتہ کی قسم</th>

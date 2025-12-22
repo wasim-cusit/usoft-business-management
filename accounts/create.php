@@ -104,7 +104,7 @@ include '../includes/header.php';
                                 <option value="">-- <?php echo t('select'); ?> --</option>
                                 <?php foreach ($userTypes as $type): ?>
                                     <option value="<?php echo $type['id']; ?>" <?php echo (($_POST['user_type_id'] ?? '') == $type['id']) ? 'selected' : ''; ?>>
-                                        <?php echo $type['type_name_urdu'] ?? $type['type_name']; ?>
+                                        <?php echo displayTypeNameFull($type); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

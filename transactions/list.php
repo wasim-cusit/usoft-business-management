@@ -151,7 +151,7 @@ include '../includes/header.php';
                                             echo $typeLabels[$transaction['transaction_type']] ?? $transaction['transaction_type'];
                                             ?>
                                         </td>
-                                        <td><?php echo htmlspecialchars($transaction['account_name'] ?? '-'); ?></td>
+                                        <td><?php echo !empty($transaction['account_name']) ? displayAccountNameFull($transaction) : '-'; ?></td>
                                         <td><strong><?php echo formatCurrency($transaction['amount']); ?></strong></td>
                                         <td><?php echo htmlspecialchars($transaction['narration'] ?? '-'); ?></td>
                                     </tr>

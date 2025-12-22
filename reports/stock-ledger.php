@@ -88,7 +88,7 @@ include '../includes/header.php';
                 <?php if (!empty($itemId) && !empty($movements)): ?>
                     <?php if ($item): ?>
                         <div class="alert alert-info">
-                            <strong>جنس:</strong> <?php echo htmlspecialchars($item['item_name']); ?> | 
+                            <strong><?php echo t('items'); ?>:</strong> <?php echo displayItemNameFull($item); ?> | 
                             <strong>موجودہ سٹاک:</strong> <?php echo number_format($item['current_stock'], 2); ?> <?php echo htmlspecialchars($item['unit']); ?>
                         </div>
                     <?php endif; ?>

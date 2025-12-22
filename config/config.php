@@ -76,5 +76,78 @@ function generateCode($prefix, $lastId) {
     $number = str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
     return $prefix . $number;
 }
+
+/**
+ * Display account name based on current language
+ * Shows Urdu name if language is Urdu and Urdu name exists, otherwise shows English name
+ */
+function displayAccountName($account) {
+    if (empty($account)) return '';
+    $lang = getLang();
+    if ($lang == 'ur' && !empty($account['account_name_urdu'])) {
+        return htmlspecialchars($account['account_name_urdu']);
+    }
+    return htmlspecialchars($account['account_name']);
+}
+
+/**
+ * Display account name with both English and Urdu (for dropdowns and lists)
+ */
+function displayAccountNameFull($account) {
+    if (empty($account)) return '';
+    $name = htmlspecialchars($account['account_name']);
+    if (!empty($account['account_name_urdu'])) {
+        $name .= ' / ' . htmlspecialchars($account['account_name_urdu']);
+    }
+    return $name;
+}
+
+/**
+ * Display item name based on current language
+ */
+function displayItemName($item) {
+    if (empty($item)) return '';
+    $lang = getLang();
+    if ($lang == 'ur' && !empty($item['item_name_urdu'])) {
+        return htmlspecialchars($item['item_name_urdu']);
+    }
+    return htmlspecialchars($item['item_name']);
+}
+
+/**
+ * Display item name with both English and Urdu (for dropdowns and lists)
+ */
+function displayItemNameFull($item) {
+    if (empty($item)) return '';
+    $name = htmlspecialchars($item['item_name']);
+    if (!empty($item['item_name_urdu'])) {
+        $name .= ' / ' . htmlspecialchars($item['item_name_urdu']);
+    }
+    return $name;
+}
+
+/**
+ * Display user type name based on current language
+ */
+function displayTypeName($type) {
+    if (empty($type)) return '';
+    $lang = getLang();
+    if ($lang == 'ur' && !empty($type['type_name_urdu'])) {
+        return htmlspecialchars($type['type_name_urdu']);
+    }
+    return htmlspecialchars($type['type_name']);
+}
+
+/**
+ * Display user type name with both English and Urdu (for dropdowns)
+ */
+function displayTypeNameFull($type) {
+    if (empty($type)) return '';
+    $name = htmlspecialchars($type['type_name']);
+    if (!empty($type['type_name_urdu'])) {
+        $name .= ' / ' . htmlspecialchars($type['type_name_urdu']);
+    }
+    return $name;
+}
 ?>
 

@@ -165,7 +165,7 @@ include '../includes/header.php';
                                 $selectedAccountId = $_POST['account_id'] ?? $_GET['account_id'] ?? '';
                                 foreach ($customers as $customer): ?>
                                     <option value="<?php echo $customer['id']; ?>" <?php echo ($selectedAccountId == $customer['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($customer['account_name']); ?>
+                                        <?php echo displayAccountNameFull($customer); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -200,7 +200,7 @@ include '../includes/header.php';
                                                     <option value="">-- <?php echo t('select'); ?> --</option>
                                                     <?php foreach ($items as $item): ?>
                                                         <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>" data-stock="<?php echo $item['current_stock']; ?>">
-                                                            <?php echo htmlspecialchars($item['item_name']); ?> (<?php echo t('stock_label'); ?>: <?php echo $item['current_stock']; ?>)
+                                                            <?php echo displayItemNameFull($item); ?> (<?php echo t('stock_label'); ?>: <?php echo $item['current_stock']; ?>)
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>

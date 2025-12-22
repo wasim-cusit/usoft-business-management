@@ -67,8 +67,8 @@ include '../includes/header.php';
                                 <td><?php echo formatDate($sale['sale_date']); ?></td>
                             </tr>
                             <tr>
-                                <th>کسٹمر</th>
-                                <td><?php echo htmlspecialchars($sale['account_name']); ?></td>
+                                <th><?php echo t('customer'); ?></th>
+                                <td><?php echo displayAccountNameFull($sale); ?></td>
                             </tr>
                             <tr>
                                 <th>ریمارکس</th>

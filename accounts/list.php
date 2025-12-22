@@ -95,8 +95,8 @@ include '../includes/header.php';
                                 <?php foreach ($accounts as $account): ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($account['account_code']); ?></td>
-                                        <td><?php echo htmlspecialchars($account['account_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($account['account_name_urdu'] ?? ''); ?></td>
+                                        <td><?php echo displayAccountName($account); ?></td>
+                                        <td><?php echo getLang() == 'ur' ? htmlspecialchars($account['account_name'] ?? '') : htmlspecialchars($account['account_name_urdu'] ?? ''); ?></td>
                                         <td>
                                             <?php
                                             $typeLabels = [

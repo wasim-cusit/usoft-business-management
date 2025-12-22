@@ -117,7 +117,7 @@ include '../includes/header.php';
                                     <tr>
                                         <td><?php echo htmlspecialchars($purchase['purchase_no']); ?></td>
                                         <td><?php echo formatDate($purchase['purchase_date']); ?></td>
-                                        <td><?php echo htmlspecialchars($purchase['account_name']); ?></td>
+                                        <td><?php echo displayAccountNameFull($purchase); ?></td>
                                         <td><?php echo formatCurrency($purchase['total_amount']); ?></td>
                                         <td><?php echo formatCurrency($purchase['discount']); ?></td>
                                         <td><strong><?php echo formatCurrency($purchase['net_amount']); ?></strong></td>

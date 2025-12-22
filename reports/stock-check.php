@@ -86,7 +86,7 @@ include '../includes/header.php';
                                     ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($item['item_code']); ?></td>
-                                        <td><?php echo htmlspecialchars($item['item_name']); ?></td>
+                                        <td><?php echo displayItemNameFull($item); ?></td>
                                         <td><?php echo htmlspecialchars($item['unit']); ?></td>
                                         <td><strong><?php echo number_format($item['current_stock'], 2); ?></strong></td>
                                         <td><?php echo number_format($item['min_stock'], 2); ?></td>

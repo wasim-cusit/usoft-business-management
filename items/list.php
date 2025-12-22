@@ -94,8 +94,8 @@ include '../includes/header.php';
                                 <?php foreach ($items as $item): ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($item['item_code']); ?></td>
-                                        <td><?php echo htmlspecialchars($item['item_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($item['item_name_urdu'] ?? ''); ?></td>
+                                        <td><?php echo displayItemName($item); ?></td>
+                                        <td><?php echo getLang() == 'ur' ? htmlspecialchars($item['item_name'] ?? '') : htmlspecialchars($item['item_name_urdu'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['category'] ?? '-'); ?></td>
                                         <td><?php echo htmlspecialchars($item['unit']); ?></td>
                                         <td><?php echo formatCurrency($item['purchase_rate']); ?></td>

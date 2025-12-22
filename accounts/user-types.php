@@ -118,8 +118,8 @@ include '../includes/header.php';
                                 <?php foreach ($userTypes as $index => $type): ?>
                                     <tr>
                                         <td><?php echo $index + 1; ?></td>
-                                        <td><?php echo htmlspecialchars($type['type_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($type['type_name_urdu'] ?? '-'); ?></td>
+                                        <td><?php echo displayTypeName($type); ?></td>
+                                        <td><?php echo getLang() == 'ur' ? htmlspecialchars($type['type_name'] ?? '-') : htmlspecialchars($type['type_name_urdu'] ?? '-'); ?></td>
                                         <td><?php echo htmlspecialchars($type['description'] ?? '-'); ?></td>
                                         <td><?php echo formatDate($type['created_at']); ?></td>
                                     </tr>
