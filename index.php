@@ -2,7 +2,7 @@
 require_once 'config/config.php';
 requireLogin();
 
-$pageTitle = 'ہوم';
+$pageTitle = 'dashboard';
 
 // Get date range
 $dateFrom = $_GET['date_from'] ?? date('Y-m-d');
@@ -80,7 +80,7 @@ include 'includes/header.php';
                 </div>
             </div>
             <a href="<?php echo BASE_URL; ?>accounts/create.php" class="btn btn-primary btn-sm w-100">
-                <i class="fas fa-plus"></i> نیا شامل کریں
+                <i class="fas fa-plus"></i> <?php echo t('add_new'); ?>
             </a>
         </div>
     </div>
@@ -89,15 +89,15 @@ include 'includes/header.php';
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h6 class="text-muted mb-1">نیا ائٹم</h6>
-                    <h4 class="mb-0">جنس شامل کریں</h4>
+                    <h6 class="text-muted mb-1"><?php echo t('create_item'); ?></h6>
+                    <h4 class="mb-0"><?php echo t('add_new'); ?> <?php echo t('items'); ?></h4>
                 </div>
                 <div class="icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                     <i class="fas fa-box"></i>
                 </div>
             </div>
             <a href="<?php echo BASE_URL; ?>items/create.php" class="btn btn-success btn-sm w-100">
-                <i class="fas fa-plus"></i> نیا شامل کریں
+                <i class="fas fa-plus"></i> <?php echo t('add_new'); ?>
             </a>
         </div>
     </div>
@@ -106,15 +106,15 @@ include 'includes/header.php';
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h6 class="text-muted mb-1">خرید مال</h6>
-                    <h4 class="mb-0">مال آمد شامل کریں</h4>
+                    <h6 class="text-muted mb-1"><?php echo t('purchases'); ?></h6>
+                    <h4 class="mb-0"><?php echo t('add_purchase'); ?></h4>
                 </div>
                 <div class="icon" style="background: linear-gradient(135deg, #3494E6 0%, #EC6EAD 100%);">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
             </div>
             <a href="<?php echo BASE_URL; ?>purchases/create.php" class="btn btn-info btn-sm w-100 text-white">
-                <i class="fas fa-plus"></i> نیا شامل کریں
+                <i class="fas fa-plus"></i> <?php echo t('add_new'); ?>
             </a>
         </div>
     </div>
@@ -123,15 +123,15 @@ include 'includes/header.php';
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h6 class="text-muted mb-1">مال فروخت</h6>
-                    <h4 class="mb-0">سیل شامل کریں</h4>
+                    <h6 class="text-muted mb-1"><?php echo t('sales'); ?></h6>
+                    <h4 class="mb-0"><?php echo t('add_sale'); ?></h4>
                 </div>
                 <div class="icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                     <i class="fas fa-cash-register"></i>
                 </div>
             </div>
             <a href="<?php echo BASE_URL; ?>sales/create.php" class="btn btn-warning btn-sm w-100">
-                <i class="fas fa-plus"></i> نیا شامل کریں
+                <i class="fas fa-plus"></i> <?php echo t('add_new'); ?>
             </a>
         </div>
     </div>
@@ -157,7 +157,7 @@ include 'includes/header.php';
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h6 class="text-muted mb-2">نیٹ سیل</h6>
+                    <h6 class="text-muted mb-2"><?php echo t('net_amount'); ?> <?php echo t('sales'); ?></h6>
                     <h3 class="text-success mb-0"><?php echo formatCurrency($salesStats['total_sales']); ?></h3>
                 </div>
                 <div class="icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">

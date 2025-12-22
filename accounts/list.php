@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'کسٹمر لسٹ';
+$pageTitle = 'customer_list';
 
 $search = $_GET['search'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
@@ -59,11 +59,11 @@ include '../includes/header.php';
             <div class="card-header">
                 <div class="row">
                     <div class="col-md-6">
-                        <h5 class="mb-0">تمام کھاتے</h5>
+                        <h5 class="mb-0"><?php echo t('accounts'); ?></h5>
                     </div>
                     <div class="col-md-6">
                         <form method="GET" class="d-flex">
-                            <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="تلاش کریں...">
+                            <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -76,20 +76,20 @@ include '../includes/header.php';
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>کوڈ</th>
-                                <th>کھاتہ کا نام</th>
-                                <th>کھاتہ کا نام (اردو)</th>
-                                <th>قسم</th>
-                                <th>یوزر ٹائپ</th>
-                                <th>موبائل</th>
-                                <th>افتتاحی بیلنس</th>
-                                <th>عمل</th>
+                                <th><?php echo t('code'); ?></th>
+                                <th><?php echo t('name'); ?></th>
+                                <th><?php echo t('name'); ?> (<?php echo t('urdu'); ?>)</th>
+                                <th><?php echo t('type'); ?></th>
+                                <th><?php echo t('user_types'); ?></th>
+                                <th><?php echo t('mobile'); ?></th>
+                                <th><?php echo t('opening_balance'); ?></th>
+                                <th><?php echo t('actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($accounts)): ?>
                                 <tr>
-                                    <td colspan="8" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                    <td colspan="8" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($accounts as $account): ?>
@@ -99,7 +99,11 @@ include '../includes/header.php';
                                         <td><?php echo htmlspecialchars($account['account_name_urdu'] ?? ''); ?></td>
                                         <td>
                                             <?php
-                                            $typeLabels = ['customer' => 'کسٹمر', 'supplier' => 'سپلائر', 'both' => 'دونوں'];
+                                            $typeLabels = [
+                                                'customer' => t('customer'), 
+                                                'supplier' => t('supplier'), 
+                                                'both' => t('both')
+                                            ];
                                             echo $typeLabels[$account['account_type']] ?? $account['account_type'];
                                             ?>
                                         </td>

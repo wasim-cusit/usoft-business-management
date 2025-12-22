@@ -41,6 +41,9 @@ ini_set('display_errors', 1);
 // Include database
 require_once ROOT_PATH . '/config/database.php';
 
+// Include language
+require_once ROOT_PATH . '/config/language.php';
+
 // Helper Functions
 function isLoggedIn() {
     return isset($_SESSION['user_id']) && isset($_SESSION['username']);

@@ -32,31 +32,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     header('Location: ' . BASE_URL . 'index.php');
                     exit;
                 } else {
-                    $error = 'آپ کا اکاؤنٹ غیر فعال ہے۔ براہ کرم ایڈمن سے رابطہ کریں۔';
+                    $error = getLang() == 'ur' ? 'آپ کا اکاؤنٹ غیر فعال ہے۔ براہ کرم ایڈمن سے رابطہ کریں۔' : 'Your account is inactive. Please contact admin.';
                 }
             } else {
-                $error = 'غلط یوزرنیم یا پاس ورڈ';
+                $error = getLang() == 'ur' ? 'غلط یوزرنیم یا پاس ورڈ' : 'Invalid username or password';
             }
         } catch (PDOException $e) {
-            $error = 'لاگ ان ناکام ہوا۔ براہ کرم دوبارہ کوشش کریں۔';
+            $error = getLang() == 'ur' ? 'لاگ ان ناکام ہوا۔ براہ کرم دوبارہ کوشش کریں۔' : 'Login failed. Please try again.';
         }
     }
 }
 ?>
+<?php
+require_once 'config/config.php';
+// Get language from session or default
+if (!isset($_SESSION['language'])) {
+    $_SESSION['language'] = 'ur';
+}
+$lang = $_SESSION['language'] ?? 'ur';
+require_once 'config/language.php';
+?>
 <!DOCTYPE html>
-<html lang="ur" dir="rtl">
+<html lang="<?php echo getLang() == 'ur' ? 'ur' : 'en'; ?>" dir="<?php echo getDir(); ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>لاگ ان - <?php echo APP_NAME; ?></title>
+    <title><?php echo t('login'); ?> - <?php echo t('app_name'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-rtl@3.4.0/dist/css/bootstrap-rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Almarai', 'Noto Nastaliq Urdu', 'Arial', sans-serif;
+            font-family: <?php echo getLang() == 'ur' ? "'Almarai', 'Noto Nastaliq Urdu', 'Arial'" : "'Inter', 'Arial'"; ?>, sans-serif;
         }
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -64,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: flex;
             align-items: center;
             justify-content: center;
-            direction: rtl;
+            direction: <?php echo getDir(); ?>;
         }
         .login-container {
             background: white;
@@ -155,8 +164,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1><i class="fas fa-store"></i> <?php echo APP_NAME; ?></h1>
-            <p>بزنس مینجمنٹ سسٹم</p>
+            <h1><i class="fas fa-store"></i> <?php echo t('app_name'); ?></h1>
+            <p><?php echo t('business_management_system'); ?></p>
+            <div class="mt-3">
+                <a href="?lang=ur" class="btn btn-sm btn-light me-2 <?php echo getLang() == 'ur' ? 'active' : ''; ?>">اردو</a>
+                <a href="?lang=en" class="btn btn-sm btn-light <?php echo getLang() == 'en' ? 'active' : ''; ?>">English</a>
+            </div>
         </div>
         <div class="login-body">
             <?php if ($error): ?>
@@ -167,23 +180,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             <form method="POST" action="">
                 <div class="mb-4">
-                    <label class="form-label">یوزرنیم</label>
+                    <label class="form-label"><?php echo t('username'); ?></label>
                     <div class="input-group">
-                        <input type="text" class="form-control" name="username" required autofocus placeholder="یوزرنیم درج کریں">
+                        <input type="text" class="form-control" name="username" required autofocus placeholder="<?php echo t('enter_username'); ?>">
                         <span class="input-group-text"><i class="fas fa-user"></i></span>
                     </div>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="form-label">پاس ورڈ</label>
+                    <label class="form-label"><?php echo t('password'); ?></label>
                     <div class="input-group">
-                        <input type="password" class="form-control" name="password" required placeholder="پاس ورڈ درج کریں">
+                        <input type="password" class="form-control" name="password" required placeholder="<?php echo t('enter_password'); ?>">
                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
                     </div>
                 </div>
                 
                 <button type="submit" class="btn btn-login">
-                    <i class="fas fa-sign-in-alt"></i> لاگ ان
+                    <i class="fas fa-sign-in-alt"></i> <?php echo t('login'); ?>
                 </button>
             </form>
         </div>
