@@ -1,5 +1,5 @@
 <?php
-require_once '../../config/config.php';
+require_once '../config/config.php';
 requireLogin();
 
 $pageTitle = 'سٹاک کھاتہ';
@@ -34,13 +34,13 @@ try {
     $items = [];
 }
 
-include '../../includes/header.php';
+include '../includes/header.php';
 ?>
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
         <h1><i class="fas fa-warehouse"></i> سٹاک کھاتہ</h1>
-        <form method="GET" class="d-flex">
+        <form method="GET" class="d-flex"></form>
             <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="تلاش کریں...">
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-search"></i>
@@ -109,5 +109,5 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<?php include '../includes/footer.php'; ?>
 

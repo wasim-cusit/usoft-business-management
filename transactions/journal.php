@@ -1,5 +1,5 @@
 <?php
-require_once '../../config/config.php';
+require_once '../config/config.php';
 requireLogin();
 
 $pageTitle = 'کیش JV';
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-include '../../includes/header.php';
+include '../includes/header.php';
 ?>
 
 <div class="page-header">

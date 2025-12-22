@@ -1,5 +1,5 @@
 <?php
-require_once '../../config/config.php';
+require_once '../config/config.php';
 requireLogin();
 
 $pageTitle = 'روزنامچہ';
@@ -40,7 +40,7 @@ try {
     $sales = [];
 }
 
-include '../../includes/header.php';
+include '../includes/header.php';
 ?>
 
 <div class="page-header">
@@ -118,5 +118,5 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<?php include '../../includes/footer.php'; ?>
+<?php include '../includes/footer.php'; ?>
 
