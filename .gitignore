@@ -1,0 +1,66 @@
+# XAMPP / Apache
+.htaccess.local
+.htpasswd
+
+# Database
+*.sql.bak
+*.sql.backup
+database/backup/
+
+# Configuration (if contains sensitive data)
+# config/database.php
+
+# Logs
+*.log
+logs/
+error_log
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# PHP
+vendor/
+composer.lock
+.phpunit.result.cache
+
+# Node modules (if any)
+node_modules/
+package-lock.json
+
+# Build files
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+
+# Test files (optional - remove if you want to keep them)
+test-connection.php
+fix-password.php
+
+# Screenshots
+*.png
+*.jpg
+*.jpeg
+screenshots/
+
+# Documentation build
+docs/_build/
+

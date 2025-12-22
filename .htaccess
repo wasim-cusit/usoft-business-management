@@ -1,0 +1,42 @@
+# Apache Configuration for Business Management System
+
+# Enable Rewrite Engine
+RewriteEngine On
+
+# Set Base Directory
+RewriteBase /usoft/
+
+# Prevent Directory Listing
+Options -Indexes
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# PHP Settings
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+# Error Pages
+ErrorDocument 404 /usoft/404.php
+ErrorDocument 403 /usoft/403.php
+
+# Protect Config Files
+<FilesMatch "^(config|database)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect .htaccess
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>
+

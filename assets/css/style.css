@@ -1,0 +1,106 @@
+/* Custom Styles for Business Management System */
+
+/* RTL Support */
+body {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Urdu Font Support */
+.urdu-text {
+    font-family: 'Noto Nastaliq Urdu', 'Almarai', Arial, sans-serif;
+}
+
+/* Smooth Transitions */
+* {
+    transition: all 0.3s ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
+}
+
+/* Mobile Responsive Enhancements */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 12px;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .form-control, .form-select {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+    
+    .page-header h1 {
+        font-size: 20px;
+    }
+    
+    .stat-card h3 {
+        font-size: 20px;
+    }
+    
+    .stat-card h4 {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 576px) {
+    .table {
+        font-size: 11px;
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: 6px 4px;
+    }
+    
+    .btn-lg {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+    
+    .card-header h5 {
+        font-size: 14px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .sidebar, .navbar, .btn, .page-header .btn, .sidebar-toggle {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
+
