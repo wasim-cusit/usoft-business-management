@@ -311,14 +311,33 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Language Switcher -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-language"></i> <?php echo getLang() == 'ur' ? 'اردو' : 'English'; ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li>
+                                <a class="dropdown-item <?php echo getLang() == 'ur' ? 'active' : ''; ?>" href="?lang=ur">
+                                    <i class="fas fa-check" style="<?php echo getLang() == 'ur' ? '' : 'display:none;'; ?>"></i> اردو
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item <?php echo getLang() == 'en' ? 'active' : ''; ?>" href="?lang=en">
+                                    <i class="fas fa-check" style="<?php echo getLang() == 'en' ? '' : 'display:none;'; ?>"></i> English
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <!-- User Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user"></i> <?php echo $_SESSION['username']; ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>users/create.php"><i class="fas fa-user-plus"></i> نیا صارف بنائیں</a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>users/create.php"><i class="fas fa-user-plus"></i> <?php echo t('create_user'); ?></a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>logout.php"><i class="fas fa-sign-out-alt"></i> لاگ آؤٹ</a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>logout.php"><i class="fas fa-sign-out-alt"></i> <?php echo t('logout'); ?></a></li>
                         </ul>
                     </li>
                 </ul>
@@ -337,82 +356,82 @@
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>index.php">
-                                <i class="fas fa-home"></i> <span>ہوم</span>
+                                <i class="fas fa-home"></i> <span><?php echo t('home'); ?></span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="collapse" href="#accountsMenu">
-                                <i class="fas fa-users"></i> <span>کھاتے</span> <i class="fas fa-chevron-left float-start"></i>
+                                <i class="fas fa-users"></i> <span><?php echo t('accounts'); ?></span> <i class="fas fa-chevron-left float-start"></i>
                             </a>
                             <div class="collapse" id="accountsMenu">
                                 <ul class="nav flex-column ms-3">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/create.php">نیا کھاتہ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/list.php">کسٹمر لسٹ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/user-types.php">یوزر ٹائپ شامل کریں</a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/create.php"><?php echo t('new_account'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/list.php"><?php echo t('customer_list'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/user-types.php"><?php echo t('add_user_type'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="collapse" href="#itemsMenu">
-                                <i class="fas fa-box"></i> <span>جنس</span> <i class="fas fa-chevron-left float-start"></i>
+                                <i class="fas fa-box"></i> <span><?php echo t('items'); ?></span> <i class="fas fa-chevron-left float-start"></i>
                             </a>
                             <div class="collapse" id="itemsMenu">
                                 <ul class="nav flex-column ms-3">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>items/create.php">جنس بنائیں</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>items/list.php">تمام جنس لسٹ</a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>items/create.php"><?php echo t('create_item'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>items/list.php"><?php echo t('all_items'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="collapse" href="#purchaseMenu">
-                                <i class="fas fa-shopping-cart"></i> <span>مال آمد</span> <i class="fas fa-chevron-left float-start"></i>
+                                <i class="fas fa-shopping-cart"></i> <span><?php echo t('purchases'); ?></span> <i class="fas fa-chevron-left float-start"></i>
                             </a>
                             <div class="collapse" id="purchaseMenu">
                                 <ul class="nav flex-column ms-3">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>purchases/create.php">مال آمد شامل کریں</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>purchases/list.php">تمام مال آمد لسٹ</a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>purchases/create.php"><?php echo t('add_purchase'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>purchases/list.php"><?php echo t('all_purchases'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="collapse" href="#saleMenu">
-                                <i class="fas fa-cash-register"></i> <span>مال فروخت</span> <i class="fas fa-chevron-left float-start"></i>
+                                <i class="fas fa-cash-register"></i> <span><?php echo t('sales'); ?></span> <i class="fas fa-chevron-left float-start"></i>
                             </a>
                             <div class="collapse" id="saleMenu">
                                 <ul class="nav flex-column ms-3">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>sales/create.php">سیل شامل کریں</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>sales/list.php">تمام سیل لسٹ</a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>sales/create.php"><?php echo t('add_sale'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>sales/list.php"><?php echo t('all_sales'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="collapse" href="#paymentMenu">
-                                <i class="fas fa-money-bill-wave"></i> <span>روزنامچہ</span> <i class="fas fa-chevron-left float-start"></i>
+                                <i class="fas fa-money-bill-wave"></i> <span><?php echo t('transactions'); ?></span> <i class="fas fa-chevron-left float-start"></i>
                             </a>
                             <div class="collapse" id="paymentMenu">
                                 <ul class="nav flex-column ms-3">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/debit.php">کیش بنام</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/credit.php">کیش جمع</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/journal.php">کیش JV</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/list.php">تمام لین دین لسٹ</a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/debit.php"><?php echo t('debit'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/credit.php"><?php echo t('credit'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/journal.php"><?php echo t('journal'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/list.php"><?php echo t('all_transactions'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="collapse" href="#reportsMenu">
-                                <i class="fas fa-chart-bar"></i> <span>رپورٹس</span> <i class="fas fa-chevron-left float-start"></i>
+                                <i class="fas fa-chart-bar"></i> <span><?php echo t('reports'); ?></span> <i class="fas fa-chevron-left float-start"></i>
                             </a>
                             <div class="collapse" id="reportsMenu">
                                 <ul class="nav flex-column ms-3">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/party-ledger.php">پارٹی لیجر</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-detail.php">سٹاک کھاتہ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-ledger.php">سٹاک لیجر</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/all-bills.php">تمام بل چٹھہ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-check.php">مال چیک رپورٹ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/balance-sheet.php">بیلنس شیٹ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/cash-book.php">کیش بک</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/daily-book.php">روزنامچہ</a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/loan-slip.php">قرضہ سلیپ & اگراھی</a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/party-ledger.php"><?php echo t('party_ledger'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-detail.php"><?php echo t('stock_detail'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-ledger.php"><?php echo t('stock_ledger'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/all-bills.php"><?php echo t('all_bills'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-check.php"><?php echo t('stock_check'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/balance-sheet.php"><?php echo t('balance_sheet'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/cash-book.php"><?php echo t('cash_book'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/daily-book.php"><?php echo t('daily_book'); ?></a></li>
+                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/loan-slip.php"><?php echo t('loan_slip'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
