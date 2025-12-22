@@ -47,7 +47,7 @@ try {
     $totalPages = ceil($totalRecords / $limit);
     
     // Get transactions
-    $stmt = $db->prepare("SELECT t.*, a.account_name FROM transactions t 
+    $stmt = $db->prepare("SELECT t.*, a.account_name, a.account_name_urdu FROM transactions t 
                          LEFT JOIN accounts a ON t.account_id = a.id 
                          $where ORDER BY t.id DESC LIMIT ? OFFSET ?");
     $params[] = $limit;

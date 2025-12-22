@@ -13,7 +13,7 @@ if (empty($id)) {
 
 try {
     $db = getDB();
-    $stmt = $db->prepare("SELECT p.*, a.account_name FROM purchases p 
+    $stmt = $db->prepare("SELECT p.*, a.account_name, a.account_name_urdu FROM purchases p 
                          LEFT JOIN accounts a ON p.account_id = a.id 
                          WHERE p.id = ?");
     $stmt->execute([$id]);
@@ -127,7 +127,7 @@ include '../includes/header.php';
                                 <?php foreach ($items as $index => $item): ?>
                                     <tr>
                                         <td><?php echo $index + 1; ?></td>
-                                        <td><?php echo htmlspecialchars($item['item_name']); ?></td>
+                                        <td><?php echo displayItemNameFull($item); ?></td>
                                         <td><?php echo number_format($item['quantity'], 2) . ' ' . htmlspecialchars($item['unit']); ?></td>
                                         <td><?php echo formatCurrency($item['rate']); ?></td>
                                         <td><?php echo formatCurrency($item['amount']); ?></td>

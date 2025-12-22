@@ -93,7 +93,7 @@ include '../includes/header.php';
                             <option value="">-- اکاؤنٹ منتخب کریں --</option>
                             <?php foreach ($accounts as $acc): ?>
                                 <option value="<?php echo $acc['id']; ?>" <?php echo $accountId == $acc['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($acc['account_name']); ?>
+                                    <?php echo displayAccountNameFull($acc); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

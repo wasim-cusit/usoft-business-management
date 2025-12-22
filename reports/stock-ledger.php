@@ -63,10 +63,10 @@ include '../includes/header.php';
                 <form method="GET" class="row g-2">
                     <div class="col-md-4">
                         <select class="form-select" name="item_id" required>
-                            <option value="">-- جنس منتخب کریں --</option>
+                            <option value="">-- <?php echo t('select_item'); ?> --</option>
                             <?php foreach ($items as $it): ?>
                                 <option value="<?php echo $it['id']; ?>" <?php echo $itemId == $it['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($it['item_name']); ?>
+                                    <?php echo displayItemNameFull($it); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

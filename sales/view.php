@@ -13,7 +13,7 @@ if (empty($id)) {
 
 try {
     $db = getDB();
-    $stmt = $db->prepare("SELECT s.*, a.account_name FROM sales s 
+    $stmt = $db->prepare("SELECT s.*, a.account_name, a.account_name_urdu FROM sales s 
                          LEFT JOIN accounts a ON s.account_id = a.id 
                          WHERE s.id = ?");
     $stmt->execute([$id]);

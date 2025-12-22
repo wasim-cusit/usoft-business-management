@@ -15,7 +15,7 @@ try {
     $sales = [];
     
     if ($type == 'all' || $type == 'purchase') {
-        $stmt = $db->prepare("SELECT p.*, a.account_name FROM purchases p 
+        $stmt = $db->prepare("SELECT p.*, a.account_name, a.account_name_urdu FROM purchases p 
                              LEFT JOIN accounts a ON p.account_id = a.id 
                              WHERE p.purchase_date BETWEEN ? AND ? 
                              ORDER BY p.purchase_date DESC, p.id DESC");
@@ -24,7 +24,7 @@ try {
     }
     
     if ($type == 'all' || $type == 'sale') {
-        $stmt = $db->prepare("SELECT s.*, a.account_name FROM sales s 
+        $stmt = $db->prepare("SELECT s.*, a.account_name, a.account_name_urdu FROM sales s 
                              LEFT JOIN accounts a ON s.account_id = a.id 
                              WHERE s.sale_date BETWEEN ? AND ? 
                              ORDER BY s.sale_date DESC, s.id DESC");

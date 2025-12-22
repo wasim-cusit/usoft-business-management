@@ -11,7 +11,7 @@ $dateTo = $_GET['date_to'] ?? '';
 // Get accounts
 try {
     $db = getDB();
-    $stmt = $db->query("SELECT * FROM accounts WHERE status = 'active' ORDER BY account_name");
+    $stmt = $db->query("SELECT id, account_name, account_name_urdu FROM accounts WHERE status = 'active' ORDER BY account_name");
     $accounts = $stmt->fetchAll();
 } catch (PDOException $e) {
     $accounts = [];
@@ -78,7 +78,7 @@ include '../includes/header.php';
                             <option value="">-- اکاؤنٹ منتخب کریں --</option>
                             <?php foreach ($accounts as $acc): ?>
                                 <option value="<?php echo $acc['id']; ?>" <?php echo $accountId == $acc['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($acc['account_name']); ?>
+                                    <?php echo displayAccountNameFull($acc); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -99,7 +99,7 @@ include '../includes/header.php';
             <div class="card-body">
                 <?php if (!empty($accountId) && !empty($account)): ?>
                     <div class="alert alert-info mb-4">
-                        <h5><strong>اکاؤنٹ:</strong> <?php echo htmlspecialchars($account['account_name']); ?></h5>
+                        <h5><strong><?php echo t('select_account'); ?>:</strong> <?php echo displayAccountNameFull($account); ?></h5>
                         <div class="row mt-3">
                             <div class="col-md-4">
                                 <strong>کل قرضہ:</strong> 
