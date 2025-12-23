@@ -237,22 +237,22 @@ include '../includes/header.php';
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-bordered" id="toItemsTable">
-                                    <thead>
+                                <table class="table table-bordered table-sm" id="toItemsTable">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th><?php echo t('item_name'); ?></th>
-                                            <th><?php echo t('quantity'); ?></th>
-                                            <th><?php echo t('packing'); ?></th>
-                                            <th><?php echo t('rate'); ?></th>
-                                            <th><?php echo t('weight'); ?></th>
-                                            <th><?php echo t('amount'); ?></th>
-                                            <th><?php echo t('actions'); ?></th>
+                                            <th width="25%"><?php echo t('item_name'); ?></th>
+                                            <th width="12%"><?php echo t('quantity'); ?></th>
+                                            <th width="12%"><?php echo t('packing'); ?></th>
+                                            <th width="12%"><?php echo t('rate'); ?></th>
+                                            <th width="12%"><?php echo t('weight'); ?></th>
+                                            <th width="12%"><?php echo t('amount'); ?></th>
+                                            <th width="8%"><?php echo t('actions'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody id="toItemsBody">
                                         <tr>
                                             <td>
-                                                <select class="form-select item-select" name="exchange_items[0][item_id]" required>
+                                                <select class="form-select form-select-sm item-select" name="exchange_items[0][item_id]" required>
                                                     <option value="">-- <?php echo t('select'); ?> --</option>
                                                     <?php foreach ($items as $item): ?>
                                                         <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>">
@@ -261,11 +261,11 @@ include '../includes/header.php';
                                                     <?php endforeach; ?>
                                                 </select>
                                             </td>
-                                            <td><input type="number" step="0.01" class="form-control quantity" name="exchange_items[0][quantity]" placeholder="0" required></td>
-                                            <td><input type="text" class="form-control" name="exchange_items[0][packing]" placeholder="<?php echo t('packing'); ?>"></td>
-                                            <td><input type="number" step="0.01" class="form-control rate" name="exchange_items[0][rate]" placeholder="0" required></td>
-                                            <td><input type="number" step="0.01" class="form-control weight" name="exchange_items[0][weight]" placeholder="0"></td>
-                                            <td><input type="text" class="form-control amount" name="exchange_items[0][amount]" readonly placeholder="0"></td>
+                                            <td><input type="number" step="0.01" class="form-control form-control-sm quantity" name="exchange_items[0][quantity]" placeholder="0" required></td>
+                                            <td><input type="text" class="form-control form-control-sm" name="exchange_items[0][packing]" placeholder="<?php echo t('packing'); ?>"></td>
+                                            <td><input type="number" step="0.01" class="form-control form-control-sm rate" name="exchange_items[0][rate]" placeholder="0" required></td>
+                                            <td><input type="number" step="0.01" class="form-control form-control-sm weight" name="exchange_items[0][weight]" placeholder="0"></td>
+                                            <td><input type="text" class="form-control form-control-sm amount" name="exchange_items[0][amount]" readonly placeholder="0"></td>
                                             <td><button type="button" class="btn btn-danger btn-sm remove-row"><i class="fas fa-times"></i></button></td>
                                         </tr>
                                     </tbody>

@@ -42,14 +42,23 @@
             letter-spacing: 0.5px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.2);
             transition: transform 0.3s ease;
+            white-space: nowrap;
         }
         .navbar-brand:hover {
             transform: scale(1.05);
         }
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         .sidebar {
-            background: #ffffff;
+            background: linear-gradient(180deg, #ffffff 0%, #f8f9ff 100%);
             min-height: calc(100vh - 70px);
             box-shadow: 3px 0 15px rgba(0,0,0,0.08);
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0;
         }
         [dir="rtl"] .sidebar {
             border-left: 1px solid #e0e0e0;
@@ -59,19 +68,76 @@
             border-right: 1px solid #e0e0e0;
             box-shadow: -3px 0 15px rgba(0,0,0,0.08);
         }
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+        .sidebar .position-sticky {
+            padding: 15px 0;
+        }
+        .sidebar .nav {
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar .nav-item {
+            margin-bottom: 2px;
+        }
         .sidebar .nav-link {
             color: #495057;
-            padding: 14px 25px;
+            padding: 12px 20px;
             border-right: 4px solid transparent;
             border-left: 4px solid transparent;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 15px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 500;
+            border-radius: 0;
+            position: relative;
+            text-decoration: none;
+            margin: 0;
+        }
+        .sidebar .nav-link > span {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-weight: 500;
-            border-radius: 0;
-            margin: 2px 0;
+            flex: 1;
+            min-width: 0;
+        }
+        .sidebar .nav-link > span > i:first-child {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .sidebar .nav-link .fa-chevron-right,
+        .sidebar .nav-link .fa-chevron-left {
+            font-size: 11px;
+            transition: transform 0.3s ease;
+            opacity: 0.7;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+        [dir="rtl"] .sidebar .nav-link .fa-chevron-right,
+        [dir="rtl"] .sidebar .nav-link .fa-chevron-left {
+            margin-left: 0;
+            margin-right: auto;
+        }
+        .sidebar .nav-link[aria-expanded="true"] .fa-chevron-right {
+            transform: rotate(90deg);
+        }
+        .sidebar .nav-link[aria-expanded="true"] .fa-chevron-left {
+            transform: rotate(-90deg);
         }
         [dir="rtl"] .sidebar .nav-link {
             border-right: 4px solid transparent;
@@ -81,24 +147,108 @@
             border-left: 4px solid transparent;
             border-right: none;
         }
-        .sidebar .nav-link:hover,
+        .sidebar .nav-link:hover {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+            color: #667eea;
+        }
         .sidebar .nav-link.active {
-            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            color: #667eea;
+            font-weight: 600;
+        }
+        .sidebar .nav-link.active > span > i:first-child {
             color: #667eea;
         }
         [dir="rtl"] .sidebar .nav-link:hover,
         [dir="rtl"] .sidebar .nav-link.active {
             border-right-color: #667eea;
-            transform: translateX(-5px);
+            padding-right: 18px;
         }
         [dir="ltr"] .sidebar .nav-link:hover,
         [dir="ltr"] .sidebar .nav-link.active {
             border-left-color: #667eea;
-            transform: translateX(5px);
+            padding-left: 18px;
         }
-        .sidebar .nav-link i {
-            width: 20px;
-            text-align: center;
+        .sidebar .nav .nav {
+            background: rgba(102, 126, 234, 0.03);
+            margin-top: 2px;
+            margin-bottom: 2px;
+            border-radius: 0;
+            padding: 4px 0;
+        }
+        [dir="rtl"] .sidebar .nav .nav {
+            padding-right: 0;
+            padding-left: 0;
+        }
+        [dir="ltr"] .sidebar .nav .nav {
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .sidebar .nav .nav .nav-link {
+            padding: 10px 20px 10px 45px;
+            font-size: 13px;
+            font-weight: 400;
+            color: #6c757d;
+            border: none;
+        }
+        [dir="rtl"] .sidebar .nav .nav .nav-link {
+            padding: 10px 45px 10px 20px;
+        }
+        .sidebar .nav .nav .nav-link:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding-left: 48px;
+        }
+        [dir="rtl"] .sidebar .nav .nav .nav-link:hover {
+            padding-left: 20px;
+            padding-right: 48px;
+        }
+        .sidebar .nav .nav .nav-link.active {
+            background: rgba(102, 126, 234, 0.18);
+            color: #667eea;
+            font-weight: 600;
+            padding-left: 48px;
+            position: relative;
+        }
+        [dir="rtl"] .sidebar .nav .nav .nav-link.active {
+            padding-left: 20px;
+            padding-right: 48px;
+        }
+        <?php /*
+        .sidebar .nav .nav .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60%;
+            background: #667eea;
+            border-radius: 2px;
+        }
+        [dir="rtl"] .sidebar .nav .nav .nav-link.active::before {
+            left: auto;
+            right: 30px;
+        }
+        */ ?>
+        .collapse {
+            transition: height 0.35s ease;
+        }
+        .collapse.show {
+            display: block;
+            animation: slideDown 0.35s ease;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+                transform: translateY(0);
+            }
         }
         .card {
             border: none;
@@ -245,11 +395,11 @@
             border-bottom: none;
         }
         .table tbody tr {
-            transition: all 0.2s ease;
+            transition: none;
         }
         .table tbody tr:hover {
             background-color: #f8f9ff;
-            transform: scale(1.01);
+            transform: none;
         }
         .form-control, .form-select {
             border: 2px solid #e1e8ed;
@@ -313,13 +463,50 @@
         }
         .stat-card {
             background: white;
-            padding: 25px;
+            padding: 20px 15px;
             border-radius: 16px;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid rgba(102, 126, 234, 0.1);
             position: relative;
             overflow: hidden;
+            min-height: 120px;
+        }
+        .stat-card .d-flex {
+            padding: 0;
+            margin: 0;
+        }
+        .stat-card h6 {
+            font-size: 13px;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .stat-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.2;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+        .stat-card .icon {
+            flex-shrink: 0;
+            margin-left: 10px;
+            margin-right: 0;
+        }
+        [dir="rtl"] .stat-card .icon {
+            margin-left: 0;
+            margin-right: 10px;
+        }
+        .stat-card > div > div:first-child {
+            flex: 1;
+            min-width: 0;
+            padding-right: 5px;
+        }
+        [dir="rtl"] .stat-card > div > div:first-child {
+            padding-right: 0;
+            padding-left: 5px;
         }
         .stat-card::before {
             content: '';
@@ -361,22 +548,34 @@
                 position: fixed;
                 top: 70px;
                 width: 280px;
+                max-width: 85vw;
                 height: calc(100vh - 70px);
                 z-index: 1000;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.15);
             }
             [dir="rtl"] .sidebar {
                 right: -100%;
-                transition: right 0.3s ease;
+                transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             }
             [dir="rtl"] .sidebar.show {
                 right: 0;
             }
             [dir="ltr"] .sidebar {
                 left: -100%;
-                transition: left 0.3s ease;
+                transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             }
             [dir="ltr"] .sidebar.show {
                 left: 0;
+            }
+            .sidebar .nav-link {
+                padding: 14px 20px;
+                font-size: 15px;
+            }
+            .sidebar .nav .nav .nav-link {
+                padding: 12px 20px 12px 50px;
+            }
+            [dir="rtl"] .sidebar .nav .nav .nav-link {
+                padding: 12px 50px 12px 20px;
             }
             .main-content {
                 padding: 15px;
@@ -506,6 +705,74 @@
             margin-left: 0;
         }
         
+        /* Global Notification System - Fixed Position */
+        #pageNotification {
+            position: fixed;
+            top: 80px;
+            z-index: 9999;
+            max-width: 400px;
+            animation: slideInNotification 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        /* English (LTR) - Top Right */
+        [dir="ltr"] #pageNotification {
+            right: 20px;
+            left: auto;
+        }
+        /* Urdu (RTL) - Top Left */
+        [dir="rtl"] #pageNotification {
+            left: 20px;
+            right: auto;
+        }
+        #pageNotification .alert {
+            margin-bottom: 0;
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #pageNotification .alert i {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        #pageNotification .alert .btn-close {
+            margin-left: auto;
+            margin-right: 0;
+            padding: 0.5rem;
+        }
+        [dir="rtl"] #pageNotification .alert .btn-close {
+            margin-left: 0;
+            margin-right: auto;
+        }
+        @keyframes slideInNotification {
+            from {
+                opacity: 0;
+                transform: translateX(<?php echo getDir() == 'rtl' ? '-100px' : '100px'; ?>);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        /* Mobile Responsive for Notifications */
+        @media (max-width: 768px) {
+            #pageNotification {
+                max-width: calc(100% - 40px);
+                top: 70px;
+            }
+            [dir="ltr"] #pageNotification {
+                right: 20px;
+                left: 20px;
+            }
+            [dir="rtl"] #pageNotification {
+                left: 20px;
+                right: 20px;
+            }
+        }
+        
         /* Enhanced Alerts */
         .alert {
             border-radius: 12px;
@@ -628,6 +895,28 @@
             padding: 25px;
         }
         
+        /* Equal Height Cards */
+        .row.equal-height {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .row.equal-height > [class*='col-'] {
+            display: flex;
+            flex-direction: column;
+        }
+        .row.equal-height > [class*='col-'] > .card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .row.equal-height > [class*='col-'] > .card > .card-body {
+            flex: 1;
+        }
+        .row.equal-height > [class*='col-'] > .stat-card {
+            flex: 1;
+            height: 100%;
+        }
+        
         /* Enhanced Button Groups */
         .btn-group .btn {
             margin: 0 4px;
@@ -657,28 +946,28 @@
             <button class="sidebar-toggle d-md-none" type="button" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
-            <a class="navbar-brand" href="<?php echo BASE_URL; ?>index.php">
+            <a class="navbar-brand <?php echo getDir() == 'rtl' ? 'order-last' : 'order-first'; ?>" href="<?php echo BASE_URL; ?>index.php">
                 <i class="fas fa-store"></i> <?php echo APP_NAME; ?>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav <?php echo getDir() == 'rtl' ? 'ms-auto' : 'me-auto'; ?>">
+                <ul class="navbar-nav <?php echo getDir() == 'rtl' ? 'me-auto' : 'ms-auto'; ?>">
                     <!-- Language Switcher -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-language"></i> <?php echo getLang() == 'ur' ? 'اردو' : 'English'; ?>
+                            <i class="fas fa-language"></i> <?php echo getLang() == 'ur' ? t('urdu') : t('english'); ?>
                         </a>
-                        <ul class="dropdown-menu <?php echo getDir() == 'rtl' ? 'dropdown-menu-end' : 'dropdown-menu-start'; ?>" aria-labelledby="languageDropdown">
+                        <ul class="dropdown-menu <?php echo getDir() == 'rtl' ? 'dropdown-menu-start' : 'dropdown-menu-end'; ?>" aria-labelledby="languageDropdown">
                             <li>
                                 <a class="dropdown-item <?php echo getLang() == 'ur' ? 'active' : ''; ?>" href="?lang=ur">
-                                    <i class="fas fa-check" style="<?php echo getLang() == 'ur' ? '' : 'display:none;'; ?>"></i> اردو
+                                    <i class="fas fa-check" style="<?php echo getLang() == 'ur' ? '' : 'display:none;'; ?>"></i> <?php echo t('urdu'); ?>
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item <?php echo getLang() == 'en' ? 'active' : ''; ?>" href="?lang=en">
-                                    <i class="fas fa-check" style="<?php echo getLang() == 'en' ? '' : 'display:none;'; ?>"></i> English
+                                    <i class="fas fa-check" style="<?php echo getLang() == 'en' ? '' : 'display:none;'; ?>"></i> <?php echo t('english'); ?>
                                 </a>
                             </li>
                         </ul>
@@ -688,7 +977,7 @@
                         <a class="nav-link dropdown-toggle text-white" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user"></i> <?php echo $_SESSION['username']; ?>
                         </a>
-                        <ul class="dropdown-menu <?php echo getDir() == 'rtl' ? 'dropdown-menu-end' : 'dropdown-menu-start'; ?>">
+                        <ul class="dropdown-menu <?php echo getDir() == 'rtl' ? 'dropdown-menu-start' : 'dropdown-menu-end'; ?>">
                             <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>users/create.php"><i class="fas fa-user-plus"></i> <?php echo t('create_user'); ?></a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>logout.php"><i class="fas fa-sign-out-alt"></i> <?php echo t('logout'); ?></a></li>
@@ -708,86 +997,131 @@
             <nav class="col-md-3 col-lg-2 sidebar p-0" id="sidebar">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
+                        <?php
+                        $currentPage = basename($_SERVER['PHP_SELF']);
+                        $currentPath = $_SERVER['PHP_SELF'];
+                        $currentDir = dirname($currentPath);
+                        $currentDir = str_replace('\\', '/', $currentDir);
+                        $currentDir = trim($currentDir, '/');
+                        
+                        // More accurate detection using full path
+                        $isAccounts = (strpos($currentPath, '/accounts/') !== false || strpos($currentPath, 'accounts/') !== false || strpos($currentPath, 'accounts\\') !== false);
+                        $isItems = (strpos($currentPath, '/items/') !== false || strpos($currentPath, 'items/') !== false || strpos($currentPath, 'items\\') !== false);
+                        $isPurchases = (strpos($currentPath, '/purchases/') !== false || strpos($currentPath, 'purchases/') !== false || strpos($currentPath, 'purchases\\') !== false);
+                        $isSales = (strpos($currentPath, '/sales/') !== false || strpos($currentPath, 'sales/') !== false || strpos($currentPath, 'sales\\') !== false);
+                        $isTransactions = (strpos($currentPath, '/transactions/') !== false || strpos($currentPath, 'transactions/') !== false || strpos($currentPath, 'transactions\\') !== false);
+                        $isReports = (strpos($currentPath, '/reports/') !== false || strpos($currentPath, 'reports/') !== false || strpos($currentPath, 'reports\\') !== false);
+                        
+                        // Determine which menu should be open (but don't mark parent as active if child is active)
+                        $accountsOpen = $isAccounts;
+                        $itemsOpen = $isItems;
+                        $purchasesOpen = $isPurchases;
+                        $salesOpen = $isSales;
+                        $transactionsOpen = $isTransactions;
+                        $reportsOpen = $isReports;
+                        
+                        // Check if we're on a child page (not just the parent)
+                        $isChildPage = ($isAccounts || $isItems || $isPurchases || $isSales || $isTransactions || $isReports) && $currentPage != 'index.php';
+                        ?>
+                        
                         <li class="nav-item">
-                            <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>index.php">
-                                <i class="fas fa-home"></i> <span><?php echo t('home'); ?></span>
+                            <a class="nav-link <?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>index.php">
+                                <span><i class="fas fa-home"></i> <?php echo t('home'); ?></span>
                             </a>
                         </li>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#accountsMenu">
-                                <i class="fas fa-users"></i> <span><?php echo t('accounts'); ?></span> <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?> <?php echo getDir() == 'rtl' ? 'float-start' : 'float-end'; ?>"></i>
+                            <a class="nav-link <?php echo ($accountsOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#accountsMenu" aria-expanded="<?php echo $accountsOpen ? 'true' : 'false'; ?>">
+                                <span><i class="fas fa-users"></i> <?php echo t('accounts'); ?></span>
+                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse" id="accountsMenu">
-                                <ul class="nav flex-column <?php echo getDir() == 'rtl' ? 'ms-3' : 'me-3'; ?>">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/create.php"><?php echo t('new_account'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/list.php"><?php echo t('customer_list'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>accounts/user-types.php"><?php echo t('add_user_type'); ?></a></li>
+                            <div class="collapse <?php echo $accountsOpen ? 'show' : ''; ?>" id="accountsMenu">
+                                <ul class="nav flex-column">
+                                    <?php /*
+                                    <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/create.php"><?php echo t('new_account'); ?></a></li>
+                                    */ ?>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/list.php"><?php echo t('customer_list'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'user-types.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/user-types.php"><?php echo t('add_user_type'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#itemsMenu">
-                                <i class="fas fa-box"></i> <span><?php echo t('items'); ?></span> <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?> <?php echo getDir() == 'rtl' ? 'float-start' : 'float-end'; ?>"></i>
+                            <a class="nav-link <?php echo ($itemsOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#itemsMenu" aria-expanded="<?php echo $itemsOpen ? 'true' : 'false'; ?>">
+                                <span><i class="fas fa-box"></i> <?php echo t('items'); ?></span>
+                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse" id="itemsMenu">
-                                <ul class="nav flex-column <?php echo getDir() == 'rtl' ? 'ms-3' : 'me-3'; ?>">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>items/create.php"><?php echo t('create_item'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>items/list.php"><?php echo t('all_items'); ?></a></li>
+                            <div class="collapse <?php echo $itemsOpen ? 'show' : ''; ?>" id="itemsMenu">
+                                <ul class="nav flex-column">
+                                    <?php /* Commented out - now using modal popup
+                                    <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isItems) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>items/create.php"><?php echo t('create_item'); ?></a></li>
+                                    */ ?>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isItems) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>items/list.php"><?php echo t('all_items'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#purchaseMenu">
-                                <i class="fas fa-shopping-cart"></i> <span><?php echo t('purchases'); ?></span> <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?> <?php echo getDir() == 'rtl' ? 'float-start' : 'float-end'; ?>"></i>
+                            <a class="nav-link <?php echo ($purchasesOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#purchaseMenu" aria-expanded="<?php echo $purchasesOpen ? 'true' : 'false'; ?>">
+                                <span><i class="fas fa-shopping-cart"></i> <?php echo t('purchases'); ?></span>
+                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse" id="purchaseMenu">
-                                <ul class="nav flex-column <?php echo getDir() == 'rtl' ? 'ms-3' : 'me-3'; ?>">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>purchases/create.php"><?php echo t('add_purchase'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>purchases/list.php"><?php echo t('all_purchases'); ?></a></li>
+                            <div class="collapse <?php echo $purchasesOpen ? 'show' : ''; ?>" id="purchaseMenu">
+                                <ul class="nav flex-column">
+                                    <?php /* Commented out - now using modal popup
+                                    <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isPurchases) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>purchases/create.php"><?php echo t('add_purchase'); ?></a></li>
+                                    */ ?>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isPurchases) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>purchases/list.php"><?php echo t('all_purchases'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#saleMenu">
-                                <i class="fas fa-cash-register"></i> <span><?php echo t('sales'); ?></span> <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?> <?php echo getDir() == 'rtl' ? 'float-start' : 'float-end'; ?>"></i>
+                            <a class="nav-link <?php echo ($salesOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#saleMenu" aria-expanded="<?php echo $salesOpen ? 'true' : 'false'; ?>">
+                                <span><i class="fas fa-cash-register"></i> <?php echo t('sales'); ?></span>
+                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse" id="saleMenu">
-                                <ul class="nav flex-column <?php echo getDir() == 'rtl' ? 'ms-3' : 'me-3'; ?>">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>sales/create.php"><?php echo t('add_sale'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>sales/list.php"><?php echo t('all_sales'); ?></a></li>
+                            <div class="collapse <?php echo $salesOpen ? 'show' : ''; ?>" id="saleMenu">
+                                <ul class="nav flex-column">
+                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isSales) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>sales/create.php"><?php echo t('add_sale'); ?></a></li> -->
+                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isSales) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>sales/list.php"><?php echo t('all_sales'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#paymentMenu">
-                                <i class="fas fa-money-bill-wave"></i> <span><?php echo t('transactions'); ?></span> <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?> <?php echo getDir() == 'rtl' ? 'float-start' : 'float-end'; ?>"></i>
+                            <a class="nav-link <?php echo ($transactionsOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#paymentMenu" aria-expanded="<?php echo $transactionsOpen ? 'true' : 'false'; ?>">
+                                <span><i class="fas fa-money-bill-wave"></i> <?php echo t('transactions'); ?></span>
+                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse" id="paymentMenu">
-                                <ul class="nav flex-column <?php echo getDir() == 'rtl' ? 'ms-3' : 'me-3'; ?>">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/debit.php"><?php echo t('debit'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/credit.php"><?php echo t('credit'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/journal.php"><?php echo t('journal'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/list.php"><?php echo t('all_transactions'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>transactions/stock-exchange.php"><?php echo t('stock_exchange'); ?></a></li>
+                            <div class="collapse <?php echo $transactionsOpen ? 'show' : ''; ?>" id="paymentMenu">
+                                <ul class="nav flex-column">
+                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'debit.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/debit.php"><?php echo t('debit'); ?></a></li> -->
+                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'credit.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/credit.php"><?php echo t('credit'); ?></a></li> -->
+                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'journal.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/journal.php"><?php echo t('journal'); ?></a></li> -->
+                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isTransactions) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/list.php"><?php echo t('all_transactions'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'stock-exchange.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/stock-exchange.php"><?php echo t('stock_exchange'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#reportsMenu">
-                                <i class="fas fa-chart-bar"></i> <span><?php echo t('reports'); ?></span> <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?> <?php echo getDir() == 'rtl' ? 'float-start' : 'float-end'; ?>"></i>
+                            <a class="nav-link <?php echo ($reportsOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#reportsMenu" aria-expanded="<?php echo $reportsOpen ? 'true' : 'false'; ?>">
+                                <span><i class="fas fa-chart-bar"></i> <?php echo t('reports'); ?></span>
+                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse" id="reportsMenu">
-                                <ul class="nav flex-column <?php echo getDir() == 'rtl' ? 'ms-3' : 'me-3'; ?>">
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/party-ledger.php"><?php echo t('party_ledger'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-detail.php"><?php echo t('stock_detail'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-ledger.php"><?php echo t('stock_ledger'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/all-bills.php"><?php echo t('all_bills'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/stock-check.php"><?php echo t('stock_check'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/balance-sheet.php"><?php echo t('balance_sheet'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/cash-book.php"><?php echo t('cash_book'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/daily-book.php"><?php echo t('daily_book'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/loan-slip.php"><?php echo t('loan_slip'); ?></a></li>
-                                    <li><a class="nav-link" href="<?php echo BASE_URL; ?>reports/rate-list.php"><?php echo t('rate_list'); ?></a></li>
+                            <div class="collapse <?php echo $reportsOpen ? 'show' : ''; ?>" id="reportsMenu">
+                                <ul class="nav flex-column">
+                                    <li><a class="nav-link <?php echo ($currentPage == 'party-ledger.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/party-ledger.php"><?php echo t('party_ledger'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'stock-detail.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/stock-detail.php"><?php echo t('stock_detail'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'stock-ledger.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/stock-ledger.php"><?php echo t('stock_ledger'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'all-bills.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/all-bills.php"><?php echo t('all_bills'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'stock-check.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/stock-check.php"><?php echo t('stock_check'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'balance-sheet.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/balance-sheet.php"><?php echo t('balance_sheet'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'cash-book.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/cash-book.php"><?php echo t('cash_book'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'daily-book.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/daily-book.php"><?php echo t('daily_book'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'loan-slip.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/loan-slip.php"><?php echo t('loan_slip'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'rate-list.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>reports/rate-list.php"><?php echo t('rate_list'); ?></a></li>
                                 </ul>
                             </div>
                         </li>
@@ -797,3 +1131,5 @@
 
             <!-- Main Content -->
             <main class="col-md-9 <?php echo getDir() == 'rtl' ? 'ms-sm-auto' : 'me-sm-auto'; ?> col-lg-10 main-content">
+                <!-- Global Notification Area - Fixed Position -->
+                <div id="pageNotification" style="display: none;"></div>

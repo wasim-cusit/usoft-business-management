@@ -100,6 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $db->commit();
             $success = t('purchase_added_success');
             $_POST = [];
+            
+            // Send message to parent window if in iframe
+            echo '<script>
+                if (window.parent !== window) {
+                    window.parent.postMessage("purchase_created", "*");
+                }
+            </script>';
         } catch (Exception $e) {
             $db->rollBack();
             $error = $e->getMessage();

@@ -15,6 +15,10 @@ $offset = ($page - 1) * $limit;
 try {
     $db = getDB();
     
+    // Get accounts for modals
+    $stmt = $db->query("SELECT * FROM accounts WHERE status = 'active' ORDER BY account_name");
+    $accounts = $stmt->fetchAll();
+    
     $where = "WHERE 1=1";
     $params = [];
     
@@ -56,6 +60,7 @@ try {
     $transactions = $stmt->fetchAll();
     
 } catch (PDOException $e) {
+    $accounts = [];
     $transactions = [];
     $totalPages = 0;
 }
@@ -63,19 +68,57 @@ try {
 include '../includes/header.php';
 ?>
 
+<style>
+/* Remove animations from card-header and card-body */
+.card {
+    transition: none !important;
+}
+.card:hover {
+    transform: none !important;
+}
+.card-header {
+    animation: none !important;
+    padding: 12px 20px !important;
+    font-size: 16px !important;
+}
+.card-header .form-label {
+    margin-bottom: 2px !important;
+    font-size: 12px !important;
+}
+.card-header::before {
+    animation: none !important;
+    display: none !important;
+}
+.card-body {
+    animation: none !important;
+}
+.table tbody tr {
+    transition: none !important;
+}
+.table tbody tr:hover {
+    transform: none !important;
+}
+.btn {
+    transition: none !important;
+}
+.btn:hover {
+    transform: none !important;
+}
+</style>
+
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
         <h1><i class="fas fa-money-bill-wave"></i> <?php echo t('all_transactions'); ?></h1>
         <div class="d-flex gap-2 mt-2 mt-md-0">
-            <a href="<?php echo BASE_URL; ?>transactions/debit.php" class="btn btn-danger btn-sm">
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#debitModal">
                 <i class="fas fa-arrow-down"></i> <?php echo t('cash_debit_type'); ?>
-            </a>
-            <a href="<?php echo BASE_URL; ?>transactions/credit.php" class="btn btn-success btn-sm">
+            </button>
+            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#creditModal">
                 <i class="fas fa-arrow-up"></i> <?php echo t('cash_credit_type'); ?>
-            </a>
-            <a href="<?php echo BASE_URL; ?>transactions/journal.php" class="btn btn-info btn-sm">
+            </button>
+            <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#journalModal">
                 <i class="fas fa-exchange-alt"></i> <?php echo t('journal_type'); ?>
-            </a>
+            </button>
         </div>
     </div>
 </div>
@@ -84,14 +127,19 @@ include '../includes/header.php';
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <form method="GET" class="row g-2">
-                            <div class="col-md-2">
-                                <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h5 class="mb-0"><?php echo t('all_transactions'); ?></h5>
+                    </div>
+                    <div class="col-md-8">
+                        <form method="GET" class="row g-2 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1"><?php echo t('search'); ?></label>
+                                <input type="text" class="form-control form-control-sm" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
                             </div>
-                            <div class="col-md-2">
-                                <select class="form-select" name="type">
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1"><?php echo t('type'); ?></label>
+                                <select class="form-select form-select-sm" name="type">
                                     <option value=""><?php echo t('all_types'); ?></option>
                                     <option value="debit" <?php echo $type == 'debit' ? 'selected' : ''; ?>><?php echo t('cash_debit_type'); ?></option>
                                     <option value="credit" <?php echo $type == 'credit' ? 'selected' : ''; ?>><?php echo t('cash_credit_type'); ?></option>
@@ -99,20 +147,17 @@ include '../includes/header.php';
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                                <label class="form-label small mb-1"><?php echo t('date_from'); ?></label>
+                                <input type="date" class="form-control form-control-sm" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
                             </div>
                             <div class="col-md-2">
-                                <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                                <label class="form-label small mb-1"><?php echo t('date_to'); ?></label>
+                                <input type="date" class="form-control form-control-sm" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
                             </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-search"></i> <?php echo t('search'); ?>
+                            <div class="col-md-1">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-search"></i>
                                 </button>
-                            </div>
-                            <div class="col-md-2">
-                                <a href="<?php echo BASE_URL; ?>transactions/list.php" class="btn btn-secondary w-100">
-                                    <i class="fas fa-redo"></i> <?php echo t('reset'); ?>
-                                </a>
                             </div>
                         </form>
                     </div>
@@ -188,6 +233,326 @@ include '../includes/header.php';
         </div>
     </div>
 </div>
+
+<!-- Debit Modal -->
+<div class="modal fade" id="debitModal" tabindex="-1" aria-labelledby="debitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="debitModalLabel">
+                    <i class="fas fa-arrow-down"></i> <?php echo t('debit'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="debitFormMessage"></div>
+                <form id="debitForm">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="transaction_date" id="debit_date" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
+                            <select class="form-select" name="account_id" id="debit_account_id" required>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
+                                <?php foreach ($accounts as $account): ?>
+                                    <option value="<?php echo $account['id']; ?>">
+                                        <?php echo displayAccountNameFull($account); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" name="amount" id="debit_amount" required min="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('narration'); ?></label>
+                        <textarea class="form-control" name="narration" id="debit_narration" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> <?php echo t('cancel'); ?>
+                </button>
+                <button type="button" class="btn btn-danger" onclick="saveDebit()">
+                    <i class="fas fa-save"></i> <?php echo t('save'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Credit Modal -->
+<div class="modal fade" id="creditModal" tabindex="-1" aria-labelledby="creditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="creditModalLabel">
+                    <i class="fas fa-arrow-up"></i> <?php echo t('credit'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="creditFormMessage"></div>
+                <form id="creditForm">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="transaction_date" id="credit_date" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
+                            <select class="form-select" name="account_id" id="credit_account_id" required>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
+                                <?php foreach ($accounts as $account): ?>
+                                    <option value="<?php echo $account['id']; ?>">
+                                        <?php echo displayAccountNameFull($account); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" name="amount" id="credit_amount" required min="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('narration'); ?></label>
+                        <textarea class="form-control" name="narration" id="credit_narration" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> <?php echo t('cancel'); ?>
+                </button>
+                <button type="button" class="btn btn-success" onclick="saveCredit()">
+                    <i class="fas fa-save"></i> <?php echo t('save'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Journal Modal -->
+<div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="journalModalLabel">
+                    <i class="fas fa-exchange-alt"></i> <?php echo t('journal'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="journalFormMessage"></div>
+                <form id="journalForm">
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="transaction_date" id="journal_date" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('debit'); ?> <?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
+                            <select class="form-select" name="debit_account_id" id="debit_account_id_journal" required>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
+                                <?php foreach ($accounts as $account): ?>
+                                    <option value="<?php echo $account['id']; ?>">
+                                        <?php echo displayAccountNameFull($account); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('credit'); ?> <?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
+                            <select class="form-select" name="credit_account_id" id="credit_account_id_journal" required>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
+                                <?php foreach ($accounts as $account): ?>
+                                    <option value="<?php echo $account['id']; ?>">
+                                        <?php echo displayAccountNameFull($account); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" name="amount" id="journal_amount" required min="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('narration'); ?></label>
+                        <textarea class="form-control" name="narration" id="journal_narration" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> <?php echo t('cancel'); ?>
+                </button>
+                <button type="button" class="btn btn-info" onclick="saveJournal()">
+                    <i class="fas fa-save"></i> <?php echo t('save'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveDebit() {
+    const form = document.getElementById('debitForm');
+    const formData = new FormData(form);
+    const messageDiv = document.getElementById('debitFormMessage');
+    
+    messageDiv.innerHTML = '';
+    
+    const saveBtn = event.target;
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('save'); ?>...';
+    
+    fetch('<?php echo BASE_URL; ?>transactions/debit-ajax.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('debitModal'));
+            modal.hide();
+            form.reset();
+            document.getElementById('debit_date').value = '<?php echo date('Y-m-d'); ?>';
+            showNotification(data.message, 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + data.message + '</div>';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo t('error_recording_transaction'); ?></div>';
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+function saveCredit() {
+    const form = document.getElementById('creditForm');
+    const formData = new FormData(form);
+    const messageDiv = document.getElementById('creditFormMessage');
+    
+    messageDiv.innerHTML = '';
+    
+    const saveBtn = event.target;
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('save'); ?>...';
+    
+    fetch('<?php echo BASE_URL; ?>transactions/credit-ajax.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('creditModal'));
+            modal.hide();
+            form.reset();
+            document.getElementById('credit_date').value = '<?php echo date('Y-m-d'); ?>';
+            showNotification(data.message, 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + data.message + '</div>';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo t('error_recording_transaction'); ?></div>';
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+function saveJournal() {
+    const form = document.getElementById('journalForm');
+    const formData = new FormData(form);
+    const messageDiv = document.getElementById('journalFormMessage');
+    
+    messageDiv.innerHTML = '';
+    
+    const debitAccountId = formData.get('debit_account_id');
+    const creditAccountId = formData.get('credit_account_id');
+    
+    if (debitAccountId == creditAccountId) {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo t('accounts_cannot_same'); ?></div>';
+        return;
+    }
+    
+    const saveBtn = event.target;
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('save'); ?>...';
+    
+    fetch('<?php echo BASE_URL; ?>transactions/journal-ajax.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('journalModal'));
+            modal.hide();
+            form.reset();
+            document.getElementById('journal_date').value = '<?php echo date('Y-m-d'); ?>';
+            showNotification(data.message, 'success');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + data.message + '</div>';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo t('error_recording_journal'); ?></div>';
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+// Reset forms on modal close
+document.getElementById('debitModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('debitForm').reset();
+    document.getElementById('debitFormMessage').innerHTML = '';
+    document.getElementById('debit_date').value = '<?php echo date('Y-m-d'); ?>';
+});
+
+document.getElementById('creditModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('creditForm').reset();
+    document.getElementById('creditFormMessage').innerHTML = '';
+    document.getElementById('credit_date').value = '<?php echo date('Y-m-d'); ?>';
+});
+
+document.getElementById('journalModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('journalForm').reset();
+    document.getElementById('journalFormMessage').innerHTML = '';
+    document.getElementById('journal_date').value = '<?php echo date('Y-m-d'); ?>';
+});
+</script>
 
 <?php include '../includes/footer.php'; ?>
 
