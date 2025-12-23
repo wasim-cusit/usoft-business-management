@@ -39,7 +39,7 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-warehouse"></i> سٹاک کھاتہ</h1>
+        <h1><i class="fas fa-warehouse"></i> <?php echo t('stock_detail'); ?></h1>
         <form method="GET" class="d-flex">
             <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
             <button type="submit" class="btn btn-primary">
@@ -60,21 +60,21 @@ include '../includes/header.php';
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>کوڈ</th>
-                                <th>جنس کا نام</th>
-                                <th>یونٹ</th>
-                                <th>افتتاحی سٹاک</th>
-                                <th>کل خرید</th>
-                                <th>کل فروخت</th>
-                                <th>موجودہ سٹاک</th>
-                                <th>کم از کم سٹاک</th>
-                                <th>حالت</th>
+                                <th><?php echo t('code'); ?></th>
+                                <th><?php echo t('item_name'); ?></th>
+                                <th><?php echo t('unit'); ?></th>
+                                <th><?php echo t('opening_stock'); ?></th>
+                                <th><?php echo t('total_purchased'); ?></th>
+                                <th><?php echo t('total_sold'); ?></th>
+                                <th><?php echo t('current_stock'); ?></th>
+                                <th><?php echo t('min_stock'); ?></th>
+                                <th><?php echo t('status'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($items)): ?>
                                 <tr>
-                                    <td colspan="9" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                    <td colspan="9" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($items as $item): ?>
@@ -82,7 +82,7 @@ include '../includes/header.php';
                                     $currentStock = $item['current_stock'];
                                     $minStock = $item['min_stock'];
                                     $statusClass = $currentStock <= $minStock ? 'bg-warning' : 'bg-success';
-                                    $statusText = $currentStock <= $minStock ? 'کم سٹاک' : 'عام';
+                                    $statusText = $currentStock <= $minStock ? t('low_stock_status') : t('normal_status');
                                     ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($item['item_code']); ?></td>

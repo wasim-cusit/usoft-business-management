@@ -63,26 +63,26 @@ include '../includes/header.php';
         <?php if ($type == 'all' || $type == 'purchase'): ?>
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> خرید کے بل</h5>
+                    <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> <?php echo t('purchase_bills'); ?></h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>بل نمبر</th>
-                                    <th>تاریخ</th>
-                                    <th>سپلائر</th>
-                                    <th>نیٹ رقم</th>
-                                    <th>ادائیگی</th>
-                                    <th>بیلنس</th>
-                                    <th>عمل</th>
+                                    <th><?php echo t('bill_no'); ?></th>
+                                    <th><?php echo t('date'); ?></th>
+                                    <th><?php echo t('supplier'); ?></th>
+                                    <th><?php echo t('net_amount'); ?></th>
+                                    <th><?php echo t('payment'); ?></th>
+                                    <th><?php echo t('balance'); ?></th>
+                                    <th><?php echo t('actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($purchases)): ?>
                                     <tr>
-                                        <td colspan="7" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                        <td colspan="7" class="text-center"><?php echo t('no_records'); ?></td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($purchases as $purchase): ?>
@@ -115,26 +115,26 @@ include '../includes/header.php';
         <?php if ($type == 'all' || $type == 'sale'): ?>
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-cash-register"></i> فروخت کے بل</h5>
+                    <h5 class="mb-0"><i class="fas fa-cash-register"></i> <?php echo t('sale_bills'); ?></h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>بل نمبر</th>
-                                    <th>تاریخ</th>
-                                    <th>کسٹمر</th>
-                                    <th>نیٹ رقم</th>
-                                    <th>وصولی</th>
-                                    <th>بیلنس</th>
-                                    <th>عمل</th>
+                                    <th><?php echo t('bill_no'); ?></th>
+                                    <th><?php echo t('date'); ?></th>
+                                    <th><?php echo t('customer'); ?></th>
+                                    <th><?php echo t('net_amount'); ?></th>
+                                    <th><?php echo t('receipt'); ?></th>
+                                    <th><?php echo t('balance'); ?></th>
+                                    <th><?php echo t('actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($sales)): ?>
                                     <tr>
-                                        <td colspan="7" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                        <td colspan="7" class="text-center"><?php echo t('no_records'); ?></td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($sales as $sale): ?>

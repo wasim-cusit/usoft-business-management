@@ -162,10 +162,101 @@ include '../includes/header.php';
                 <a href="<?php echo BASE_URL; ?>sales/create.php?account_id=<?php echo $id; ?>" class="btn btn-success w-100 mb-2">
                     <i class="fas fa-cash-register"></i> <?php echo t('add_sale'); ?>
                 </a>
+                <?php if (!empty($account['mobile']) || !empty($account['phone'])): ?>
+                    <button type="button" class="btn btn-info w-100 mb-2 send-sms-btn" 
+                            data-account-id="<?php echo $id; ?>"
+                            data-mobile="<?php echo htmlspecialchars($account['mobile'] ?? $account['phone'] ?? ''); ?>"
+                            data-account-name="<?php echo htmlspecialchars(displayAccountNameFull($account)); ?>"
+                            data-balance="<?php echo $balance; ?>">
+                        <i class="fas fa-sms"></i> <?php echo t('send_sms'); ?>
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
+
+<!-- SMS Modal -->
+<div class="modal fade" id="smsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><?php echo t('send_sms'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="smsForm">
+                    <input type="hidden" id="sms_account_id" name="account_id">
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('mobile'); ?> <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="sms_mobile" name="mobile" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('message'); ?></label>
+                        <textarea class="form-control" id="sms_message" name="message" rows="4"></textarea>
+                        <small class="text-muted"><?php echo t('leave_empty_for_balance_sms'); ?></small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-primary" id="sendSMSBtn"><?php echo t('send_sms'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const smsModal = new bootstrap.Modal(document.getElementById('smsModal'));
+    const sendSMSBtn = document.getElementById('sendSMSBtn');
+    
+    document.querySelectorAll('.send-sms-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const accountId = this.getAttribute('data-account-id');
+            const mobile = this.getAttribute('data-mobile');
+            const accountName = this.getAttribute('data-account-name');
+            const balance = this.getAttribute('data-balance');
+            
+            document.getElementById('sms_account_id').value = accountId;
+            document.getElementById('sms_mobile').value = mobile;
+            document.getElementById('sms_message').value = '';
+            
+            smsModal.show();
+        });
+    });
+    
+    sendSMSBtn.addEventListener('click', function() {
+        const form = document.getElementById('smsForm');
+        const formData = new FormData(form);
+        formData.append('type', 'balance');
+        
+        sendSMSBtn.disabled = true;
+        sendSMSBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('sending'); ?>...';
+        
+        fetch('<?php echo BASE_URL; ?>api/send-sms.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                smsModal.hide();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert('<?php echo t('error'); ?>: ' + error);
+        })
+        .finally(() => {
+            sendSMSBtn.disabled = false;
+            sendSMSBtn.innerHTML = '<?php echo t('send_sms'); ?>';
+        });
+    });
+});
+</script>
 
 <?php include '../includes/footer.php'; ?>
 

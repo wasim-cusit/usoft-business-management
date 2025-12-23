@@ -72,7 +72,7 @@ if (!empty($accountId)) {
             $ledgerData = $stmt->fetchAll();
         }
     } catch (PDOException $e) {
-        $error = 'ڈیٹا لانے میں خرابی';
+        $error = t('error') . ': ' . $e->getMessage();
     }
 }
 
@@ -120,17 +120,17 @@ include '../includes/header.php';
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th>تاریخ</th>
-                                    <th>تفصیل</th>
-                                    <th>حوالہ</th>
-                                    <th>ڈیبٹ</th>
-                                    <th>کریڈٹ</th>
-                                    <th>بیلنس</th>
+                                    <th><?php echo t('date'); ?></th>
+                                    <th><?php echo t('description'); ?></th>
+                                    <th><?php echo t('reference'); ?></th>
+                                    <th><?php echo t('debit'); ?></th>
+                                    <th><?php echo t('credit'); ?></th>
+                                    <th><?php echo t('balance'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr class="bg-light">
-                                    <td colspan="3"><strong>افتتاحی بیلنس</strong></td>
+                                    <td colspan="3"><strong><?php echo t('opening_balance'); ?></strong></td>
                                     <td><?php echo $openingBalance > 0 ? formatCurrency($openingBalance) : '-'; ?></td>
                                     <td><?php echo $openingBalance < 0 ? formatCurrency(abs($openingBalance)) : '-'; ?></td>
                                     <td><strong><?php echo formatCurrency($balance); ?></strong></td>
@@ -157,7 +157,7 @@ include '../includes/header.php';
                                     </tr>
                                 <?php endforeach; ?>
                                 <tr class="bg-light">
-                                    <td colspan="5"><strong>اختتامی بیلنس</strong></td>
+                                    <td colspan="5"><strong><?php echo t('closing_balance'); ?></strong></td>
                                     <td><strong><?php echo formatCurrency($balance); ?></strong></td>
                                 </tr>
                             </tbody>
@@ -165,11 +165,11 @@ include '../includes/header.php';
                     </div>
                 <?php elseif (!empty($accountId)): ?>
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> اس مدت میں کوئی لین دین نہیں ملا
+                        <i class="fas fa-info-circle"></i> <?php echo t('no_transactions_found'); ?>
                     </div>
                 <?php else: ?>
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> براہ کرم اکاؤنٹ منتخب کریں
+                        <i class="fas fa-exclamation-triangle"></i> <?php echo t('please_select_account'); ?>
                     </div>
                 <?php endif; ?>
             </div>

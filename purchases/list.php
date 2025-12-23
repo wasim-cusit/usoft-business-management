@@ -140,7 +140,7 @@ include '../includes/header.php';
                 </div>
                 
                 <?php if ($totalPages > 1): ?>
-                    <nav aria-label="Page navigation">
+                    <nav aria-label="<?php echo t('page_navigation'); ?>">
                         <ul class="pagination justify-content-center">
                             <?php if ($page > 1): ?>
                                 <li class="page-item">

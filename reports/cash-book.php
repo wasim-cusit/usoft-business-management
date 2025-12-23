@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'کیش بک';
+$pageTitle = 'cash_book';
 
 $dateFrom = $_GET['date_from'] ?? date('Y-m-01');
 $dateTo = $_GET['date_to'] ?? date('Y-m-d');
@@ -37,12 +37,12 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-book"></i> کیش بک</h1>
+        <h1><i class="fas fa-book"></i> <?php echo t('cash_book'); ?></h1>
         <form method="GET" class="d-flex gap-2">
             <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" required>
             <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>" required>
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-search"></i> دیکھیں
+                <i class="fas fa-search"></i> <?php echo t('check'); ?>
             </button>
         </form>
     </div>
@@ -52,7 +52,7 @@ include '../includes/header.php';
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">کیش بک رپورٹ</h5>
+                <h5 class="mb-0"><?php echo t('cash_book'); ?> <?php echo t('report'); ?></h5>
             </div>
             <div class="card-body">
                 <?php
@@ -64,17 +64,17 @@ include '../includes/header.php';
                     <table class="table table-bordered">
                         <thead>
                             <tr>
-                                <th>تاریخ</th>
-                                <th>تفصیل</th>
-                                <th>اکاؤنٹ</th>
-                                <th>کیش بنام</th>
-                                <th>کیش جمع</th>
-                                <th>بیلنس</th>
+                                <th><?php echo t('date'); ?></th>
+                                <th><?php echo t('description'); ?></th>
+                                <th><?php echo t('account_name'); ?></th>
+                                <th><?php echo t('debit'); ?></th>
+                                <th><?php echo t('credit'); ?></th>
+                                <th><?php echo t('balance'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="bg-light">
-                                <td colspan="3"><strong>افتتاحی بیلنس</strong></td>
+                                <td colspan="3"><strong><?php echo t('opening_balance'); ?></strong></td>
                                 <td><?php echo $openingBalance > 0 ? formatCurrency($openingBalance) : '-'; ?></td>
                                 <td><?php echo $openingBalance < 0 ? formatCurrency(abs($openingBalance)) : '-'; ?></td>
                                 <td><strong><?php echo formatCurrency($balance); ?></strong></td>
@@ -103,13 +103,13 @@ include '../includes/header.php';
                                 </tr>
                             <?php endforeach; ?>
                             <tr class="bg-light">
-                                <td colspan="3"><strong>کل</strong></td>
+                                <td colspan="3"><strong><?php echo t('total'); ?></strong></td>
                                 <td><strong><?php echo formatCurrency($totalDebit); ?></strong></td>
                                 <td><strong><?php echo formatCurrency($totalCredit); ?></strong></td>
                                 <td></td>
                             </tr>
                             <tr class="bg-light">
-                                <td colspan="5"><strong>اختتامی بیلنس</strong></td>
+                                <td colspan="5"><strong><?php echo t('closing_balance'); ?></strong></td>
                                 <td><strong><?php echo formatCurrency($balance); ?></strong></td>
                             </tr>
                         </tbody>

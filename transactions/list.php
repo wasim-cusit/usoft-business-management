@@ -106,12 +106,12 @@ include '../includes/header.php';
                             </div>
                             <div class="col-md-2">
                                 <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-search"></i> تلاش
+                                    <i class="fas fa-search"></i> <?php echo t('search'); ?>
                                 </button>
                             </div>
                             <div class="col-md-2">
                                 <a href="<?php echo BASE_URL; ?>transactions/list.php" class="btn btn-secondary w-100">
-                                    <i class="fas fa-redo"></i> ریسیٹ
+                                    <i class="fas fa-redo"></i> <?php echo t('reset'); ?>
                                 </a>
                             </div>
                         </form>
@@ -123,18 +123,18 @@ include '../includes/header.php';
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>ٹرانزیکشن نمبر</th>
-                                <th>تاریخ</th>
-                                <th>قسم</th>
-                                <th>اکاؤنٹ</th>
-                                <th>رقم</th>
-                                <th>تفصیل</th>
+                                <th><?php echo t('transaction_no'); ?></th>
+                                <th><?php echo t('date'); ?></th>
+                                <th><?php echo t('type'); ?></th>
+                                <th><?php echo t('account_name'); ?></th>
+                                <th><?php echo t('amount'); ?></th>
+                                <th><?php echo t('description'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($transactions)): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                    <td colspan="6" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($transactions as $transaction): ?>
@@ -144,9 +144,9 @@ include '../includes/header.php';
                                         <td>
                                             <?php
                                             $typeLabels = [
-                                                'debit' => '<span class="badge bg-danger">کیش بنام</span>',
-                                                'credit' => '<span class="badge bg-success">کیش جمع</span>',
-                                                'journal' => '<span class="badge bg-info">جرنل</span>'
+                                                'debit' => '<span class="badge bg-danger">' . t('debit') . '</span>',
+                                                'credit' => '<span class="badge bg-success">' . t('credit') . '</span>',
+                                                'journal' => '<span class="badge bg-info">' . t('journal') . '</span>'
                                             ];
                                             echo $typeLabels[$transaction['transaction_type']] ?? $transaction['transaction_type'];
                                             ?>
@@ -162,7 +162,7 @@ include '../includes/header.php';
                 </div>
                 
                 <?php if ($totalPages > 1): ?>
-                    <nav aria-label="Page navigation">
+                    <nav aria-label="<?php echo t('page_navigation'); ?>">
                         <ul class="pagination justify-content-center">
                             <?php if ($page > 1): ?>
                                 <li class="page-item">

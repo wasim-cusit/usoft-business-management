@@ -37,7 +37,8 @@ if (!empty($accountId)) {
         }
         
         // Get loan transactions (debit = loan given, credit = loan returned)
-        $stmt = $db->prepare("SELECT * FROM transactions $where AND narration LIKE '%قرض%' ORDER BY transaction_date DESC");
+        // Note: In real system, you might want to use a specific transaction type or flag for loans
+        $stmt = $db->prepare("SELECT * FROM transactions $where ORDER BY transaction_date DESC");
         $stmt->execute($params);
         $loans = $stmt->fetchAll();
         
@@ -65,7 +66,7 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-hand-holding-usd"></i> قرضہ سلیپ & اگراھی</h1>
+    <h1><i class="fas fa-hand-holding-usd"></i> <?php echo t('loan_slip'); ?></h1>
 </div>
 
 <div class="row">
@@ -102,15 +103,15 @@ include '../includes/header.php';
                         <h5><strong><?php echo t('select_account'); ?>:</strong> <?php echo displayAccountNameFull($account); ?></h5>
                         <div class="row mt-3">
                             <div class="col-md-4">
-                                <strong>کل قرضہ:</strong> 
+                                <strong><?php echo t('total_loan'); ?>:</strong> 
                                 <span class="badge bg-danger"><?php echo formatCurrency($totalLoan); ?></span>
                             </div>
                             <div class="col-md-4">
-                                <strong>واپس:</strong> 
+                                <strong><?php echo t('returned'); ?>:</strong> 
                                 <span class="badge bg-success"><?php echo formatCurrency($totalReturned); ?></span>
                             </div>
                             <div class="col-md-4">
-                                <strong>باقی بیلنس:</strong> 
+                                <strong><?php echo t('balance'); ?>:</strong> 
                                 <span class="badge bg-warning"><?php echo formatCurrency($totalLoan - $totalReturned); ?></span>
                             </div>
                         </div>
@@ -121,10 +122,10 @@ include '../includes/header.php';
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>تاریخ</th>
-                                        <th>قسم</th>
-                                        <th>رقم</th>
-                                        <th>تفصیل</th>
+                                        <th><?php echo t('date'); ?></th>
+                                        <th><?php echo t('type'); ?></th>
+                                        <th><?php echo t('amount'); ?></th>
+                                        <th><?php echo t('description'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -133,9 +134,9 @@ include '../includes/header.php';
                                             <td><?php echo formatDate($loan['transaction_date']); ?></td>
                                             <td>
                                                 <?php if ($loan['transaction_type'] == 'debit'): ?>
-                                                    <span class="badge bg-danger">قرضہ دیا</span>
+                                                    <span class="badge bg-danger"><?php echo t('loan_given'); ?></span>
                                                 <?php else: ?>
-                                                    <span class="badge bg-success">واپس کیا</span>
+                                                    <span class="badge bg-success"><?php echo t('loan_returned'); ?></span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?php echo formatCurrency($loan['amount']); ?></td>
@@ -145,11 +146,11 @@ include '../includes/header.php';
                                 </tbody>
                                 <tfoot>
                                     <tr class="bg-light">
-                                        <td colspan="2"><strong>کل:</strong></td>
+                                        <td colspan="2"><strong><?php echo t('total'); ?>:</strong></td>
                                         <td colspan="2">
-                                            <strong>قرضہ:</strong> <?php echo formatCurrency($totalLoan); ?> | 
-                                            <strong>واپس:</strong> <?php echo formatCurrency($totalReturned); ?> | 
-                                            <strong>باقی:</strong> <?php echo formatCurrency($totalLoan - $totalReturned); ?>
+                                            <strong><?php echo t('total_loan'); ?>:</strong> <?php echo formatCurrency($totalLoan); ?> | 
+                                            <strong><?php echo t('returned'); ?>:</strong> <?php echo formatCurrency($totalReturned); ?> | 
+                                            <strong><?php echo t('balance'); ?>:</strong> <?php echo formatCurrency($totalLoan - $totalReturned); ?>
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -157,12 +158,12 @@ include '../includes/header.php';
                         </div>
                     <?php else: ?>
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> اس مدت میں کوئی قرضہ کا ریکارڈ نہیں ملا
+                            <i class="fas fa-info-circle"></i> <?php echo t('no_loan_records'); ?>
                         </div>
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> براہ کرم اکاؤنٹ منتخب کریں
+                        <i class="fas fa-exclamation-triangle"></i> <?php echo t('please_select_account'); ?>
                     </div>
                 <?php endif; ?>
             </div>

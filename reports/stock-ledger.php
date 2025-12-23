@@ -89,7 +89,7 @@ include '../includes/header.php';
                     <?php if ($item): ?>
                         <div class="alert alert-info">
                             <strong><?php echo t('items'); ?>:</strong> <?php echo displayItemNameFull($item); ?> | 
-                            <strong>موجودہ سٹاک:</strong> <?php echo number_format($item['current_stock'], 2); ?> <?php echo htmlspecialchars($item['unit']); ?>
+                            <strong><?php echo t('current_stock'); ?>:</strong> <?php echo number_format($item['current_stock'], 2); ?> <?php echo htmlspecialchars($item['unit']); ?>
                         </div>
                     <?php endif; ?>
                     
@@ -97,12 +97,12 @@ include '../includes/header.php';
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th>تاریخ</th>
-                                    <th>قسم</th>
-                                    <th>حوالہ</th>
-                                    <th>داخل</th>
-                                    <th>خارج</th>
-                                    <th>بیلنس</th>
+                                    <th><?php echo t('date'); ?></th>
+                                    <th><?php echo t('type'); ?></th>
+                                    <th><?php echo t('reference'); ?></th>
+                                    <th><?php echo t('in'); ?></th>
+                                    <th><?php echo t('out'); ?></th>
+                                    <th><?php echo t('balance'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,10 +112,10 @@ include '../includes/header.php';
                                         <td>
                                             <?php
                                             $typeLabels = [
-                                                'purchase' => '<span class="badge bg-success">خرید</span>',
-                                                'sale' => '<span class="badge bg-danger">فروخت</span>',
-                                                'adjustment' => '<span class="badge bg-warning">ایڈجسٹمنٹ</span>',
-                                                'opening' => '<span class="badge bg-info">افتتاحی</span>'
+                                                'purchase' => '<span class="badge bg-success">' . t('purchases') . '</span>',
+                                                'sale' => '<span class="badge bg-danger">' . t('sales') . '</span>',
+                                                'adjustment' => '<span class="badge bg-warning">' . t('adjustment') . '</span>',
+                                                'opening' => '<span class="badge bg-info">' . t('opening_stock') . '</span>'
                                             ];
                                             echo $typeLabels[$movement['movement_type']] ?? $movement['movement_type'];
                                             ?>
@@ -131,11 +131,11 @@ include '../includes/header.php';
                     </div>
                 <?php elseif (!empty($itemId)): ?>
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> اس مدت میں کوئی حرکت نہیں ملی
+                        <i class="fas fa-info-circle"></i> <?php echo t('no_movements_period'); ?>
                     </div>
                 <?php else: ?>
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> براہ کرم جنس منتخب کریں
+                        <i class="fas fa-exclamation-triangle"></i> <?php echo t('please_select_item'); ?>
                     </div>
                 <?php endif; ?>
             </div>

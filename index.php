@@ -292,22 +292,22 @@ include 'includes/header.php';
                 <div class="row">
                     <div class="col-md-6 mb-2">
                         <a href="<?php echo BASE_URL; ?>reports/cash-book.php" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-book"></i> کیش بک
+                            <i class="fas fa-book"></i> <?php echo t('cash_book'); ?>
                         </a>
                     </div>
                     <div class="col-md-6 mb-2">
                         <a href="<?php echo BASE_URL; ?>reports/balance-sheet.php" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-file-alt"></i> بیلنس شیٹ
+                            <i class="fas fa-file-alt"></i> <?php echo t('balance_sheet'); ?>
                         </a>
                     </div>
                     <div class="col-md-6 mb-2">
                         <a href="<?php echo BASE_URL; ?>reports/party-ledger.php" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-file-invoice"></i> پارٹی لیجر
+                            <i class="fas fa-file-invoice"></i> <?php echo t('party_ledger'); ?>
                         </a>
                     </div>
                     <div class="col-md-6 mb-2">
                         <a href="<?php echo BASE_URL; ?>reports/stock-detail.php" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-warehouse"></i> سٹاک کھاتہ
+                            <i class="fas fa-warehouse"></i> <?php echo t('stock_detail'); ?>
                         </a>
                     </div>
                 </div>

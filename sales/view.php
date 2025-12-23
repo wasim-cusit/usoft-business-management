@@ -51,8 +51,8 @@ include '../includes/header.php';
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header"></div></div>
-                <h5 class="mb-0">فروخت کی معلومات</h5>
+            <div class="card-header">
+                <h5 class="mb-0"><?php echo t('sale_info'); ?></h5>
             </div>
             <div class="card-body">
                 <div class="row mb-4">
@@ -112,16 +112,16 @@ include '../includes/header.php';
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>جنس</th>
-                                <th>مقدار</th>
-                                <th>قیمت</th>
-                                <th>رقم</th>
+                                <th><?php echo t('item_name'); ?></th>
+                                <th><?php echo t('quantity'); ?></th>
+                                <th><?php echo t('rate'); ?></th>
+                                <th><?php echo t('amount'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($items)): ?>
                                 <tr>
-                                    <td colspan="5" class="text-center">کوئی جنس نہیں ملی</td>
+                                    <td colspan="5" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($items as $index => $item): ?>
@@ -137,7 +137,7 @@ include '../includes/header.php';
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="4" class="text-end"><strong>کل:</strong></td>
+                                <td colspan="4" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
                                 <td><strong><?php echo formatCurrency($sale['total_amount']); ?></strong></td>
                             </tr>
                         </tfoot>

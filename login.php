@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'] ?? '';
     
     if (empty($username) || empty($password)) {
-        $error = 'براہ کرم یوزرنیم اور پاس ورڈ درج کریں';
+        $error = t('username_password_required');
     } else {
         try {
             $db = getDB();
@@ -32,13 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     header('Location: ' . BASE_URL . 'index.php');
                     exit;
                 } else {
-                    $error = getLang() == 'ur' ? 'آپ کا اکاؤنٹ غیر فعال ہے۔ براہ کرم ایڈمن سے رابطہ کریں۔' : 'Your account is inactive. Please contact admin.';
+                    $error = t('account_inactive');
                 }
             } else {
-                $error = getLang() == 'ur' ? 'غلط یوزرنیم یا پاس ورڈ' : 'Invalid username or password';
+                $error = t('invalid_credentials');
             }
         } catch (PDOException $e) {
-            $error = getLang() == 'ur' ? 'لاگ ان ناکام ہوا۔ براہ کرم دوبارہ کوشش کریں۔' : 'Login failed. Please try again.';
+            $error = t('login_failed');
         }
     }
 }
@@ -167,8 +167,8 @@ require_once 'config/language.php';
             <h1><i class="fas fa-store"></i> <?php echo t('app_name'); ?></h1>
             <p><?php echo t('business_management_system'); ?></p>
             <div class="mt-3">
-                <a href="?lang=ur" class="btn btn-sm btn-light me-2 <?php echo getLang() == 'ur' ? 'active' : ''; ?>">اردو</a>
-                <a href="?lang=en" class="btn btn-sm btn-light <?php echo getLang() == 'en' ? 'active' : ''; ?>">English</a>
+                <a href="?lang=ur" class="btn btn-sm btn-light me-2 <?php echo getLang() == 'ur' ? 'active' : ''; ?>"><?php echo t('urdu'); ?></a>
+                <a href="?lang=en" class="btn btn-sm btn-light <?php echo getLang() == 'en' ? 'active' : ''; ?>"><?php echo t('english'); ?></a>
             </div>
         </div>
         <div class="login-body">

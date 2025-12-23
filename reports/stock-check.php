@@ -55,26 +55,33 @@ include '../includes/header.php';
             <div class="card-body">
                 <?php if (empty($items)): ?>
                     <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> تمام جنس کا سٹاک مناسب ہے!
+                        <i class="fas fa-check-circle"></i> <?php echo t('all_stock_ok'); ?>
                     </div>
                 <?php else: ?>
                     <div class="alert alert-<?php echo $checkType == 'out_of_stock' ? 'danger' : 'warning'; ?>">
-                        <i class="fas fa-exclamation-triangle"></i> کل <?php echo count($items); ?> جنس <?php echo $checkType == 'out_of_stock' ? 'ختم' : 'کم'; ?> سٹاک میں ہیں
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <?php 
+                        if ($checkType == 'out_of_stock') {
+                            echo sprintf(t('total_items_out_stock'), count($items));
+                        } else {
+                            echo sprintf(t('total_items_low_stock'), count($items));
+                        }
+                        ?>
                     </div>
                     
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>کوڈ</th>
-                                    <th>جنس کا نام</th>
-                                    <th>یونٹ</th>
-                                    <th>موجودہ سٹاک</th>
-                                    <th>کم از کم سٹاک</th>
-                                    <th>فرق</th>
-                                    <th>خرید کی قیمت</th>
-                                    <th>فروخت کی قیمت</th>
-                                    <th>حالت</th>
+                                    <th><?php echo t('code'); ?></th>
+                                    <th><?php echo t('item_name'); ?></th>
+                                    <th><?php echo t('unit'); ?></th>
+                                    <th><?php echo t('current_stock'); ?></th>
+                                    <th><?php echo t('min_stock'); ?></th>
+                                    <th><?php echo t('difference'); ?></th>
+                                    <th><?php echo t('purchase_rate'); ?></th>
+                                    <th><?php echo t('sale_rate'); ?></th>
+                                    <th><?php echo t('status'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -82,7 +89,7 @@ include '../includes/header.php';
                                     <?php
                                     $difference = $item['current_stock'] - $item['min_stock'];
                                     $statusClass = $item['current_stock'] <= 0 ? 'bg-danger' : ($difference < 0 ? 'bg-warning' : 'bg-success');
-                                    $statusText = $item['current_stock'] <= 0 ? 'ختم' : ($difference < 0 ? 'کم' : 'عام');
+                                    $statusText = $item['current_stock'] <= 0 ? t('out_of_stock_status') : ($difference < 0 ? t('low_stock_status') : t('normal_status'));
                                     ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($item['item_code']); ?></td>
