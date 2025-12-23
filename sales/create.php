@@ -270,10 +270,10 @@ $(document).ready(function() {
             <tr>
                 <td>
                     <select class="form-select item-select" name="item_id[]" required>
-                        <option value="">-- منتخب کریں --</option>
+                        <option value="">-- <?php echo t('select'); ?> --</option>
                         <?php foreach ($items as $item): ?>
                             <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>" data-stock="<?php echo $item['current_stock']; ?>">
-                                <?php echo htmlspecialchars($item['item_name']); ?> (سٹاک: <?php echo $item['current_stock']; ?>)
+                                <?php echo htmlspecialchars($item['item_name']); ?> (<?php echo t('stock_label'); ?>: <?php echo $item['current_stock']; ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>

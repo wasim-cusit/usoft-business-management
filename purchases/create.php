@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'مال آمد شامل کریں';
+$pageTitle = 'new_purchase';
 $success = '';
 $error = '';
 
@@ -30,9 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $rates = $_POST['rate'] ?? [];
     
     if (empty($accountId)) {
-        $error = 'براہ کرم سپلائر منتخب کریں';
+        $error = t('please_select_supplier');
     } elseif (empty($itemIds) || !is_array($itemIds)) {
-        $error = 'براہ کرم کم از کم ایک جنس شامل کریں';
+        $error = t('please_add_item');
     } else {
         try {
             $db->beginTransaction();
@@ -198,7 +198,7 @@ include '../includes/header.php';
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <td colspan="3" class="text-end"><strong>کل رقم:</strong></td>
+                                            <td colspan="3" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
                                             <td><input type="text" class="form-control" id="total_amount" readonly value="0.00"></td>
                                             <td></td>
                                         </tr>
@@ -255,7 +255,7 @@ $(document).ready(function() {
             <tr>
                 <td>
                     <select class="form-select item-select" name="item_id[]" required>
-                        <option value="">-- منتخب کریں --</option>
+                        <option value="">-- <?php echo t('select'); ?> --</option>
                         <?php foreach ($items as $item): ?>
                             <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['purchase_rate']; ?>">
                                 <?php echo htmlspecialchars($item['item_name']); ?>

@@ -3,8 +3,9 @@
 # Enable Rewrite Engine
 RewriteEngine On
 
-# Set Base Directory
-RewriteBase /usoft/
+# Set Base Directory - Auto-detect (comment out if causes issues)
+# RewriteBase will be auto-detected, but you can uncomment and set manually if needed
+# RewriteBase /usoft/
 
 # Prevent Directory Listing
 Options -Indexes
@@ -24,9 +25,10 @@ Options -Indexes
     php_value max_input_time 300
 </IfModule>
 
-# Error Pages
-ErrorDocument 404 /usoft/404.php
-ErrorDocument 403 /usoft/403.php
+# Error Pages - Use relative paths (will work on any server)
+# ErrorDocument 404 /usoft/404.php
+# ErrorDocument 403 /usoft/403.php
+# Note: Uncomment and update paths above if you create custom error pages
 
 # Protect Config Files
 <FilesMatch "^(config|database)">

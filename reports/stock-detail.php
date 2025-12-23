@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'سٹاک کھاتہ';
+$pageTitle = 'stock_detail';
 
 $search = $_GET['search'] ?? '';
 
@@ -53,7 +53,7 @@ include '../includes/header.php';
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">تمام جنس کی سٹاک تفصیلات</h5>
+                <h5 class="mb-0"><?php echo t('stock_detail_all_items'); ?></h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">

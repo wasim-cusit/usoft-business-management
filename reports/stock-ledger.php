@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'سٹاک لیجر';
+$pageTitle = 'stock_ledger';
 
 $itemId = $_GET['item_id'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
@@ -53,7 +53,7 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-chart-line"></i> سٹاک لیجر</h1>
+    <h1><i class="fas fa-chart-line"></i> <?php echo t('stock_ledger'); ?></h1>
 </div>
 
 <div class="row">
@@ -79,7 +79,7 @@ include '../includes/header.php';
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i> دیکھیں
+                            <i class="fas fa-search"></i> <?php echo t('view'); ?>
                         </button>
                     </div>
                 </form>

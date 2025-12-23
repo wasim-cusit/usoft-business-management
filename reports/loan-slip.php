@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'قرضہ سلیپ & اگراھی';
+$pageTitle = 'loan_slip';
 
 $accountId = $_GET['account_id'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
@@ -75,7 +75,7 @@ include '../includes/header.php';
                 <form method="GET" class="row g-2">
                     <div class="col-md-4">
                         <select class="form-select" name="account_id" required>
-                            <option value="">-- اکاؤنٹ منتخب کریں --</option>
+                            <option value="">-- <?php echo t('please_select_account'); ?> --</option>
                             <?php foreach ($accounts as $acc): ?>
                                 <option value="<?php echo $acc['id']; ?>" <?php echo $accountId == $acc['id'] ? 'selected' : ''; ?>>
                                     <?php echo displayAccountNameFull($acc); ?>
@@ -84,14 +84,14 @@ include '../includes/header.php';
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" placeholder="تاریخ سے">
+                        <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" placeholder="<?php echo t('date_from'); ?>">
                     </div>
                     <div class="col-md-3">
-                        <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>" placeholder="تاریخ تک">
+                        <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>" placeholder="<?php echo t('date_to'); ?>">
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i> دیکھیں
+                            <i class="fas fa-search"></i> <?php echo t('view'); ?>
                         </button>
                     </div>
                 </form>

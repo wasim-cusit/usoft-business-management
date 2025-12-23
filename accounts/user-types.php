@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'یوزر ٹائپ شامل کریں';
+$pageTitle = 'add_user_type_title';
 $success = '';
 $error = '';
 
@@ -12,20 +12,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $description = sanitizeInput($_POST['description'] ?? '');
     
     if (empty($typeName)) {
-        $error = 'براہ کرم ٹائپ کا نام درج کریں';
+        $error = t('type_name_required');
     } else {
         try {
             $db = getDB();
             $stmt = $db->prepare("INSERT INTO user_types (type_name, type_name_urdu, description) VALUES (?, ?, ?)");
             $stmt->execute([$typeName, $typeNameUrdu, $description]);
             
-            $success = 'یوزر ٹائپ کامیابی سے شامل ہو گیا';
+            $success = t('user_type_added_success');
             $_POST = [];
         } catch (PDOException $e) {
             if (strpos($e->getMessage(), 'Duplicate') !== false) {
-                $error = 'یہ ٹائپ پہلے سے موجود ہے';
+                $error = t('type_already_exists');
             } else {
-                $error = 'یوزر ٹائپ شامل کرنے میں خرابی';
+                $error = t('error_adding_user_type');
             }
         }
     }
@@ -44,14 +44,14 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-tags"></i> یوزر ٹائپ شامل کریں</h1>
+    <h1><i class="fas fa-tags"></i> <?php echo t('add_user_type_title'); ?></h1>
 </div>
 
 <div class="row">
     <div class="col-md-5">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">نیا یوزر ٹائپ</h5>
+                <h5 class="mb-0"><?php echo t('new_user_type'); ?></h5>
             </div>
             <div class="card-body">
                 <?php if ($success): ?>
@@ -70,22 +70,22 @@ include '../includes/header.php';
                 
                 <form method="POST" action="">
                     <div class="mb-3">
-                        <label class="form-label">ٹائپ کا نام (انگریزی) <span class="text-danger">*</span></label>
+                        <label class="form-label"><?php echo t('type_name_english'); ?> <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="type_name" value="<?php echo $_POST['type_name'] ?? ''; ?>" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">ٹائپ کا نام (اردو)</label>
+                        <label class="form-label"><?php echo t('type_name_urdu_label'); ?></label>
                         <input type="text" class="form-control" name="type_name_urdu" value="<?php echo $_POST['type_name_urdu'] ?? ''; ?>">
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">تفصیل</label>
+                        <label class="form-label"><?php echo t('description'); ?></label>
                         <textarea class="form-control" name="description" rows="3"><?php echo $_POST['description'] ?? ''; ?></textarea>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-lg w-100">
-                        <i class="fas fa-save"></i> محفوظ کریں
+                        <i class="fas fa-save"></i> <?php echo t('save'); ?>
                     </button>
                 </form>
             </div>
@@ -95,7 +95,7 @@ include '../includes/header.php';
     <div class="col-md-7">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">تمام یوزر ٹائپس</h5>
+                <h5 class="mb-0"><?php echo t('all_user_types'); ?></h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -103,16 +103,16 @@ include '../includes/header.php';
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>ٹائپ کا نام</th>
-                                <th>ٹائپ کا نام (اردو)</th>
-                                <th>تفصیل</th>
-                                <th>تاریخ</th>
+                                <th><?php echo t('type_name'); ?></th>
+                                <th><?php echo t('type_name_urdu'); ?></th>
+                                <th><?php echo t('description'); ?></th>
+                                <th><?php echo t('date'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($userTypes)): ?>
                                 <tr>
-                                    <td colspan="5" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                    <td colspan="5" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($userTypes as $index => $type): ?>

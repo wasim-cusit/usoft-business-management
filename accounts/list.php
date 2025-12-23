@@ -46,9 +46,9 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center">
-        <h1><i class="fas fa-users"></i> کسٹمر لسٹ</h1>
+        <h1><i class="fas fa-users"></i> <?php echo t('customer_list'); ?></h1>
         <a href="<?php echo BASE_URL; ?>accounts/create.php" class="btn btn-primary">
-            <i class="fas fa-plus"></i> نیا کھاتہ بنائیں
+            <i class="fas fa-plus"></i> <?php echo t('new_account'); ?>
         </a>
     </div>
 </div>

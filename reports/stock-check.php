@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'مال چیک رپورٹ';
+$pageTitle = 'stock_check';
 
 $checkType = $_GET['check_type'] ?? 'low_stock';
 
@@ -12,15 +12,15 @@ try {
     if ($checkType == 'low_stock') {
         $stmt = $db->query("SELECT * FROM items WHERE current_stock <= min_stock AND status = 'active' ORDER BY (current_stock - min_stock) ASC");
         $items = $stmt->fetchAll();
-        $title = 'کم سٹاک والی جنس';
+        $title = t('low_stock_check');
     } elseif ($checkType == 'out_of_stock') {
         $stmt = $db->query("SELECT * FROM items WHERE current_stock <= 0 AND status = 'active' ORDER BY item_name");
         $items = $stmt->fetchAll();
-        $title = 'ختم شدہ جنس';
+        $title = t('out_of_stock_check');
     } else {
         $stmt = $db->query("SELECT * FROM items WHERE status = 'active' ORDER BY item_name");
         $items = $stmt->fetchAll();
-        $title = 'تمام جنس';
+        $title = t('all_check');
     }
     
 } catch (PDOException $e) {
@@ -32,15 +32,15 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-exclamation-triangle"></i> مال چیک رپورٹ</h1>
+        <h1><i class="fas fa-exclamation-triangle"></i> <?php echo t('stock_check'); ?></h1>
         <form method="GET" class="d-flex gap-2">
             <select class="form-select" name="check_type" style="width: 200px;">
-                <option value="low_stock" <?php echo $checkType == 'low_stock' ? 'selected' : ''; ?>>کم سٹاک</option>
-                <option value="out_of_stock" <?php echo $checkType == 'out_of_stock' ? 'selected' : ''; ?>>ختم شدہ</option>
-                <option value="all" <?php echo $checkType == 'all' ? 'selected' : ''; ?>>تمام</option>
+                <option value="low_stock" <?php echo $checkType == 'low_stock' ? 'selected' : ''; ?>><?php echo t('low_stock_check'); ?></option>
+                <option value="out_of_stock" <?php echo $checkType == 'out_of_stock' ? 'selected' : ''; ?>><?php echo t('out_of_stock_check'); ?></option>
+                <option value="all" <?php echo $checkType == 'all' ? 'selected' : ''; ?>><?php echo t('all_check'); ?></option>
             </select>
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-search"></i> دیکھیں
+                <i class="fas fa-search"></i> <?php echo t('view'); ?>
             </button>
         </form>
     </div>

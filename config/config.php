@@ -10,8 +10,49 @@ session_start();
 // Timezone
 date_default_timezone_set('Asia/Karachi');
 
-// Base URL
-define('BASE_URL', 'http://localhost/usoft/');
+// Base URL - Auto-detect based on server environment
+// This will work on both localhost and live server
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || 
+             (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? 'https://' : 'http://';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+// Detect base path: config.php is always in /config/ directory
+// So we go up one level to get the project root
+$configFile = __FILE__;
+$configDir = dirname($configFile); // /path/to/project/config
+$projectRoot = dirname($configDir); // /path/to/project
+$documentRoot = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? '');
+$projectRoot = str_replace('\\', '/', $projectRoot);
+
+// Get relative path from document root
+if (!empty($documentRoot) && strpos($projectRoot, $documentRoot) === 0) {
+    $basePath = substr($projectRoot, strlen($documentRoot));
+    $basePath = str_replace('\\', '/', $basePath);
+    if ($basePath === '' || $basePath === '/') {
+        $basePath = '/';
+    } else {
+        if (substr($basePath, 0, 1) !== '/') {
+            $basePath = '/' . $basePath;
+        }
+        if (substr($basePath, -1) !== '/') {
+            $basePath .= '/';
+        }
+    }
+} else {
+    // Fallback: use SCRIPT_NAME to detect path
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+    $scriptDir = dirname($scriptName);
+    $basePath = str_replace('\\', '/', $scriptDir);
+    if ($basePath === '/' || $basePath === '.') {
+        $basePath = '/';
+    } else {
+        if (substr($basePath, -1) !== '/') {
+            $basePath .= '/';
+        }
+    }
+}
+
+define('BASE_URL', $protocol . $host . $basePath);
 define('APP_NAME', 'یوسف اینڈ کو');
 define('APP_NAME_EN', 'Yusuf & Co');
 

@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'تمام لین دین لسٹ';
+$pageTitle = 'all_transactions_list';
 
 $search = $_GET['search'] ?? '';
 $dateFrom = $_GET['date_from'] ?? '';
@@ -65,16 +65,16 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-money-bill-wave"></i> تمام لین دین لسٹ</h1>
+        <h1><i class="fas fa-money-bill-wave"></i> <?php echo t('all_transactions'); ?></h1>
         <div class="d-flex gap-2 mt-2 mt-md-0">
             <a href="<?php echo BASE_URL; ?>transactions/debit.php" class="btn btn-danger btn-sm">
-                <i class="fas fa-arrow-down"></i> کیش بنام
+                <i class="fas fa-arrow-down"></i> <?php echo t('cash_debit_type'); ?>
             </a>
             <a href="<?php echo BASE_URL; ?>transactions/credit.php" class="btn btn-success btn-sm">
-                <i class="fas fa-arrow-up"></i> کیش جمع
+                <i class="fas fa-arrow-up"></i> <?php echo t('cash_credit_type'); ?>
             </a>
             <a href="<?php echo BASE_URL; ?>transactions/journal.php" class="btn btn-info btn-sm">
-                <i class="fas fa-exchange-alt"></i> JV
+                <i class="fas fa-exchange-alt"></i> <?php echo t('journal_type'); ?>
             </a>
         </div>
     </div>
@@ -88,14 +88,14 @@ include '../includes/header.php';
                     <div class="col-md-12 mb-3">
                         <form method="GET" class="row g-2">
                             <div class="col-md-2">
-                                <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="تلاش کریں...">
+                                <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
                             </div>
                             <div class="col-md-2">
                                 <select class="form-select" name="type">
-                                    <option value="">تمام قسمیں</option>
-                                    <option value="debit" <?php echo $type == 'debit' ? 'selected' : ''; ?>>کیش بنام</option>
-                                    <option value="credit" <?php echo $type == 'credit' ? 'selected' : ''; ?>>کیش جمع</option>
-                                    <option value="journal" <?php echo $type == 'journal' ? 'selected' : ''; ?>>جرنل</option>
+                                    <option value=""><?php echo t('all_types'); ?></option>
+                                    <option value="debit" <?php echo $type == 'debit' ? 'selected' : ''; ?>><?php echo t('cash_debit_type'); ?></option>
+                                    <option value="credit" <?php echo $type == 'credit' ? 'selected' : ''; ?>><?php echo t('cash_credit_type'); ?></option>
+                                    <option value="journal" <?php echo $type == 'journal' ? 'selected' : ''; ?>><?php echo t('journal_type'); ?></option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -166,7 +166,7 @@ include '../includes/header.php';
                         <ul class="pagination justify-content-center">
                             <?php if ($page > 1): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&type=<?php echo urlencode($type); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>">پچھلا</a>
+                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&type=<?php echo urlencode($type); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>"><?php echo t('previous'); ?></a>
                                 </li>
                             <?php endif; ?>
                             
@@ -178,7 +178,7 @@ include '../includes/header.php';
                             
                             <?php if ($page < $totalPages): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&type=<?php echo urlencode($type); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>">اگلا</a>
+                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&type=<?php echo urlencode($type); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>"><?php echo t('next'); ?></a>
                                 </li>
                             <?php endif; ?>
                         </ul>

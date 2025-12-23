@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'تمام بل چٹھہ';
+$pageTitle = 'all_bills';
 
 $dateFrom = $_GET['date_from'] ?? date('Y-m-01');
 $dateTo = $_GET['date_to'] ?? date('Y-m-d');
@@ -42,17 +42,17 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-file-invoice"></i> تمام بل چٹھہ</h1>
+        <h1><i class="fas fa-file-invoice"></i> <?php echo t('all_bills'); ?></h1>
         <form method="GET" class="d-flex gap-2">
             <select class="form-select" name="type" style="width: 150px;">
-                <option value="all" <?php echo $type == 'all' ? 'selected' : ''; ?>>سب</option>
-                <option value="purchase" <?php echo $type == 'purchase' ? 'selected' : ''; ?>>خرید</option>
-                <option value="sale" <?php echo $type == 'sale' ? 'selected' : ''; ?>>فروخت</option>
+                <option value="all" <?php echo $type == 'all' ? 'selected' : ''; ?>><?php echo t('all_bills_type'); ?></option>
+                <option value="purchase" <?php echo $type == 'purchase' ? 'selected' : ''; ?>><?php echo t('purchase_bills_type'); ?></option>
+                <option value="sale" <?php echo $type == 'sale' ? 'selected' : ''; ?>><?php echo t('sale_bills_type'); ?></option>
             </select>
             <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" required>
             <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>" required>
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-search"></i> دیکھیں
+                <i class="fas fa-search"></i> <?php echo t('view'); ?>
             </button>
         </form>
     </div>

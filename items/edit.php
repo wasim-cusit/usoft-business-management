@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'جنس ایڈٹ کریں';
+$pageTitle = 'edit_item';
 $success = '';
 $error = '';
 
@@ -41,19 +41,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $status = $_POST['status'] ?? 'active';
     
     if (empty($itemName)) {
-        $error = 'براہ کرم جنس کا نام درج کریں';
+        $error = t('please_enter_item_name');
     } else {
         try {
             $stmt = $db->prepare("UPDATE items SET item_code = ?, item_name = ?, item_name_urdu = ?, category = ?, unit = ?, purchase_rate = ?, sale_rate = ?, min_stock = ?, description = ?, status = ? WHERE id = ?");
             $stmt->execute([$itemCode, $itemName, $itemNameUrdu, $category, $unit, $purchaseRate, $saleRate, $minStock, $description, $status, $id]);
             
-            $success = 'جنس کامیابی سے اپ ڈیٹ ہو گئی';
+            $success = t('item_updated_success');
             // Refresh item data
             $stmt = $db->prepare("SELECT * FROM items WHERE id = ?");
             $stmt->execute([$id]);
             $item = $stmt->fetch();
         } catch (PDOException $e) {
-            $error = 'جنس اپ ڈیٹ کرنے میں خرابی: ' . $e->getMessage();
+            $error = t('error_updating_item') . ': ' . $e->getMessage();
         }
     }
 }
@@ -62,14 +62,14 @@ include '../includes/header.php';
 ?>
 
 <div class="page-header">
-    <h1><i class="fas fa-edit"></i> جنس ایڈٹ کریں</h1>
+    <h1><i class="fas fa-edit"></i> <?php echo t('edit_item'); ?></h1>
 </div>
 
 <div class="row">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">جنس کی معلومات</h5>
+                <h5 class="mb-0"><?php echo t('item_info'); ?></h5>
             </div>
             <div class="card-body">
                 <?php if ($success): ?>
@@ -89,77 +89,77 @@ include '../includes/header.php';
                 <form method="POST" action="">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">جنس کوڈ</label>
+                            <label class="form-label"><?php echo t('item_code'); ?></label>
                             <input type="text" class="form-control" name="item_code" value="<?php echo htmlspecialchars($item['item_code']); ?>">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">جنس کا نام <span class="text-danger">*</span></label>
+                            <label class="form-label"><?php echo t('item_name'); ?> <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="item_name" value="<?php echo htmlspecialchars($item['item_name']); ?>" required>
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">جنس کا نام (اردو)</label>
+                            <label class="form-label"><?php echo t('item_name_urdu'); ?></label>
                             <input type="text" class="form-control" name="item_name_urdu" value="<?php echo htmlspecialchars($item['item_name_urdu'] ?? ''); ?>">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">قسم</label>
+                            <label class="form-label"><?php echo t('category'); ?></label>
                             <input type="text" class="form-control" name="category" value="<?php echo htmlspecialchars($item['category'] ?? ''); ?>">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">یونٹ</label>
+                            <label class="form-label"><?php echo t('unit'); ?></label>
                             <select class="form-select" name="unit">
-                                <option value="pcs" <?php echo $item['unit'] == 'pcs' ? 'selected' : ''; ?>>عدد</option>
-                                <option value="kg" <?php echo $item['unit'] == 'kg' ? 'selected' : ''; ?>>کلو</option>
-                                <option value="gram" <?php echo $item['unit'] == 'gram' ? 'selected' : ''; ?>>گرام</option>
-                                <option value="liter" <?php echo $item['unit'] == 'liter' ? 'selected' : ''; ?>>لیٹر</option>
-                                <option value="meter" <?php echo $item['unit'] == 'meter' ? 'selected' : ''; ?>>میٹر</option>
+                                <option value="pcs" <?php echo $item['unit'] == 'pcs' ? 'selected' : ''; ?>><?php echo t('pcs'); ?></option>
+                                <option value="kg" <?php echo $item['unit'] == 'kg' ? 'selected' : ''; ?>><?php echo t('kg'); ?></option>
+                                <option value="gram" <?php echo $item['unit'] == 'gram' ? 'selected' : ''; ?>><?php echo t('gram'); ?></option>
+                                <option value="liter" <?php echo $item['unit'] == 'liter' ? 'selected' : ''; ?>><?php echo t('liter'); ?></option>
+                                <option value="meter" <?php echo $item['unit'] == 'meter' ? 'selected' : ''; ?>><?php echo t('meter'); ?></option>
                             </select>
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">خرید کی قیمت</label>
+                            <label class="form-label"><?php echo t('purchase_rate'); ?></label>
                             <input type="number" step="0.01" class="form-control currency-input" name="purchase_rate" value="<?php echo $item['purchase_rate']; ?>">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">فروخت کی قیمت</label>
+                            <label class="form-label"><?php echo t('sale_rate'); ?></label>
                             <input type="number" step="0.01" class="form-control currency-input" name="sale_rate" value="<?php echo $item['sale_rate']; ?>">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">کم از کم سٹاک</label>
+                            <label class="form-label"><?php echo t('min_stock'); ?></label>
                             <input type="number" step="0.01" class="form-control" name="min_stock" value="<?php echo $item['min_stock']; ?>">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">موجودہ سٹاک</label>
+                            <label class="form-label"><?php echo t('current_stock'); ?></label>
                             <input type="text" class="form-control" value="<?php echo number_format($item['current_stock'], 2); ?>" readonly>
-                            <small class="text-muted">سٹاک صرف خرید/فروخت کے ذریعے تبدیل ہو سکتا ہے</small>
+                            <small class="text-muted"><?php echo t('stock_only_transactions'); ?></small>
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">حالت</label>
+                            <label class="form-label"><?php echo t('status'); ?></label>
                             <select class="form-select" name="status">
-                                <option value="active" <?php echo $item['status'] == 'active' ? 'selected' : ''; ?>>فعال</option>
-                                <option value="inactive" <?php echo $item['status'] == 'inactive' ? 'selected' : ''; ?>>غیر فعال</option>
+                                <option value="active" <?php echo $item['status'] == 'active' ? 'selected' : ''; ?>><?php echo t('active'); ?></option>
+                                <option value="inactive" <?php echo $item['status'] == 'inactive' ? 'selected' : ''; ?>><?php echo t('inactive'); ?></option>
                             </select>
                         </div>
                         
                         <div class="col-md-12 mb-3">
-                            <label class="form-label">تفصیل</label>
+                            <label class="form-label"><?php echo t('description'); ?></label>
                             <textarea class="form-control" name="description" rows="3"><?php echo htmlspecialchars($item['description'] ?? ''); ?></textarea>
                         </div>
                     </div>
                     
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-save"></i> محفوظ کریں
+                            <i class="fas fa-save"></i> <?php echo t('save'); ?>
                         </button>
                         <a href="<?php echo BASE_URL; ?>items/list.php" class="btn btn-secondary btn-lg">
-                            <i class="fas fa-arrow-right"></i> واپس
+                            <i class="fas fa-arrow-right"></i> <?php echo t('back'); ?>
                         </a>
                     </div>
                 </form>

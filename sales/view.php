@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'فروخت کی تفصیلات';
+$pageTitle = 'sale_details_title';
 
 $id = intval($_GET['id'] ?? 0);
 
@@ -41,9 +41,9 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-cash-register"></i> فروخت کی تفصیلات</h1>
+        <h1><i class="fas fa-cash-register"></i> <?php echo t('sale_details_title'); ?></h1>
         <a href="<?php echo BASE_URL; ?>sales/list.php" class="btn btn-secondary">
-            <i class="fas fa-arrow-right"></i> واپس
+            <i class="fas fa-arrow-right"></i> <?php echo t('back'); ?>
         </a>
     </div>
 </div>
@@ -51,7 +51,7 @@ include '../includes/header.php';
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header"></div></div>
                 <h5 class="mb-0">فروخت کی معلومات</h5>
             </div>
             <div class="card-body">
@@ -59,11 +59,11 @@ include '../includes/header.php';
                     <div class="col-md-6">
                         <table class="table table-bordered">
                             <tr>
-                                <th style="width: 40%;">بل نمبر</th>
+                                <th style="width: 40%;"><?php echo t('bill_no'); ?></th>
                                 <td><?php echo htmlspecialchars($sale['sale_no']); ?></td>
                             </tr>
                             <tr>
-                                <th>تاریخ</th>
+                                <th><?php echo t('date'); ?></th>
                                 <td><?php echo formatDate($sale['sale_date']); ?></td>
                             </tr>
                             <tr>
@@ -71,7 +71,7 @@ include '../includes/header.php';
                                 <td><?php echo displayAccountNameFull($sale); ?></td>
                             </tr>
                             <tr>
-                                <th>ریمارکس</th>
+                                <th><?php echo t('remarks'); ?></th>
                                 <td><?php echo htmlspecialchars($sale['remarks'] ?? '-'); ?></td>
                             </tr>
                         </table>
@@ -79,23 +79,23 @@ include '../includes/header.php';
                     <div class="col-md-6">
                         <table class="table table-bordered">
                             <tr>
-                                <th style="width: 40%;">کل رقم</th>
+                                <th style="width: 40%;"><?php echo t('grand_total'); ?></th>
                                 <td><?php echo formatCurrency($sale['total_amount']); ?></td>
                             </tr>
                             <tr>
-                                <th>ڈسکاؤنٹ</th>
+                                <th><?php echo t('discount'); ?></th>
                                 <td><?php echo formatCurrency($sale['discount']); ?></td>
                             </tr>
                             <tr>
-                                <th>نیٹ رقم</th>
+                                <th><?php echo t('net_amount'); ?></th>
                                 <td><strong><?php echo formatCurrency($sale['net_amount']); ?></strong></td>
                             </tr>
                             <tr>
-                                <th>وصولی</th>
+                                <th><?php echo t('receipt'); ?></th>
                                 <td><?php echo formatCurrency($sale['paid_amount']); ?></td>
                             </tr>
                             <tr>
-                                <th>بیلنس</th>
+                                <th><?php echo t('balance'); ?></th>
                                 <td>
                                     <span class="badge <?php echo $sale['balance_amount'] > 0 ? 'bg-warning' : 'bg-success'; ?>">
                                         <?php echo formatCurrency($sale['balance_amount']); ?>
@@ -106,7 +106,7 @@ include '../includes/header.php';
                     </div>
                 </div>
                 
-                <h5 class="mb-3">جنس کی تفصیلات</h5>
+                <h5 class="mb-3"><?php echo t('item_details'); ?></h5>
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead>

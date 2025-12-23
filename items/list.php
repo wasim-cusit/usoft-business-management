@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 requireLogin();
 
-$pageTitle = 'تمام جنس لسٹ';
+$pageTitle = 'all_items';
 
 $search = $_GET['search'] ?? '';
 $page = max(1, intval($_GET['page'] ?? 1));
@@ -44,9 +44,9 @@ include '../includes/header.php';
 
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-box"></i> تمام جنس لسٹ</h1>
+        <h1><i class="fas fa-box"></i> <?php echo t('all_items'); ?></h1>
         <a href="<?php echo BASE_URL; ?>items/create.php" class="btn btn-primary mt-2 mt-md-0">
-            <i class="fas fa-plus"></i> نیا ائٹم بنائیں
+            <i class="fas fa-plus"></i> <?php echo t('new_item'); ?>
         </a>
     </div>
 </div>
@@ -57,11 +57,11 @@ include '../includes/header.php';
             <div class="card-header">
                 <div class="row">
                     <div class="col-md-6">
-                        <h5 class="mb-0">تمام جنس</h5>
+                        <h5 class="mb-0"><?php echo t('all_items'); ?></h5>
                     </div>
                     <div class="col-md-6">
                         <form method="GET" class="d-flex">
-                            <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="تلاش کریں...">
+                            <input type="text" class="form-control" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -74,21 +74,21 @@ include '../includes/header.php';
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>کوڈ</th>
-                                <th>جنس کا نام</th>
-                                <th>جنس کا نام (اردو)</th>
-                                <th>قسم</th>
-                                <th>یونٹ</th>
-                                <th>خرید کی قیمت</th>
-                                <th>فروخت کی قیمت</th>
-                                <th>موجودہ سٹاک</th>
-                                <th>عمل</th>
+                                <th><?php echo t('code'); ?></th>
+                                <th><?php echo t('item_name'); ?> (<?php echo getLang() == 'ur' ? t('urdu') : t('english'); ?>)</th>
+                                <th><?php echo t('item_name'); ?> (<?php echo getLang() == 'ur' ? t('english') : t('urdu'); ?>)</th>
+                                <th><?php echo t('category'); ?></th>
+                                <th><?php echo t('unit'); ?></th>
+                                <th><?php echo t('purchase_rate'); ?></th>
+                                <th><?php echo t('sale_rate'); ?></th>
+                                <th><?php echo t('current_stock'); ?></th>
+                                <th><?php echo t('actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($items)): ?>
                                 <tr>
-                                    <td colspan="9" class="text-center">کوئی ریکارڈ نہیں ملا</td>
+                                    <td colspan="9" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($items as $item): ?>
@@ -122,7 +122,7 @@ include '../includes/header.php';
                         <ul class="pagination justify-content-center">
                             <?php if ($page > 1): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>">پچھلا</a>
+                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>"><?php echo t('previous'); ?></a>
                                 </li>
                             <?php endif; ?>
                             
@@ -134,7 +134,7 @@ include '../includes/header.php';
                             
                             <?php if ($page < $totalPages): ?>
                                 <li class="page-item">
-                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>">اگلا</a>
+                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>"><?php echo t('next'); ?></a>
                                 </li>
                             <?php endif; ?>
                         </ul>
