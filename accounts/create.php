@@ -6,20 +6,22 @@ $pageTitle = 'new_account';
 $success = '';
 $error = '';
 
-// Get user types
+// Get next account code for display
 try {
     $db = getDB();
-    $stmt = $db->query("SELECT * FROM user_types ORDER BY type_name");
-    $userTypes = $stmt->fetchAll();
+    $stmt = $db->query("SELECT MAX(id) as max_id FROM accounts");
+    $maxId = $stmt->fetch()['max_id'] ?? 0;
+    $nextNumber = $maxId + 1;
+    $nextAccountCode = 'Acc' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
 } catch (PDOException $e) {
-    $userTypes = [];
+    $nextAccountCode = 'Acc01';
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $accountCode = trim(sanitizeInput($_POST['account_code'] ?? ''));
     $accountName = sanitizeInput($_POST['account_name'] ?? '');
     $accountNameUrdu = sanitizeInput($_POST['account_name_urdu'] ?? '');
     $accountType = $_POST['account_type'] ?? 'customer';
-    $userTypeId = $_POST['user_type_id'] ?? null;
     $contactPerson = sanitizeInput($_POST['contact_person'] ?? '');
     $phone = sanitizeInput($_POST['phone'] ?? '');
     $mobile = sanitizeInput($_POST['mobile'] ?? '');
@@ -33,16 +35,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = t('please_enter_account_name');
     } else {
         try {
-            // Generate account code
-            $stmt = $db->query("SELECT MAX(id) as max_id FROM accounts");
-            $maxId = $stmt->fetch()['max_id'] ?? 0;
-            $accountCode = generateCode('ACC', $maxId);
+            // Generate account code if not provided
+            if (empty($accountCode)) {
+                $stmt = $db->query("SELECT MAX(id) as max_id FROM accounts");
+                $maxId = $stmt->fetch()['max_id'] ?? 0;
+                $nextNumber = $maxId + 1;
+                $accountCode = 'Acc' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+            } else {
+                // Check if account code already exists
+                $stmt = $db->prepare("SELECT id FROM accounts WHERE account_code = ?");
+                $stmt->execute([$accountCode]);
+                if ($stmt->fetch()) {
+                    throw new Exception(t('account_code_already_exists'));
+                }
+            }
             
-            $stmt = $db->prepare("INSERT INTO accounts (account_code, account_name, account_name_urdu, account_type, user_type_id, contact_person, phone, mobile, email, address, city, opening_balance, balance_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$accountCode, $accountName, $accountNameUrdu, $accountType, $userTypeId ?: null, $contactPerson, $phone, $mobile, $email, $address, $city, $openingBalance, $balanceType]);
+            $stmt = $db->prepare("INSERT INTO accounts (account_code, account_name, account_name_urdu, account_type, contact_person, phone, mobile, email, address, city, opening_balance, balance_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$accountCode, $accountName, $accountNameUrdu, $accountType, $contactPerson, $phone, $mobile, $email, $address, $city, $openingBalance, $balanceType]);
             
             $success = t('account_added_success');
             $_POST = []; // Clear form
+            // Recalculate next code
+            $stmt = $db->query("SELECT MAX(id) as max_id FROM accounts");
+            $maxId = $stmt->fetch()['max_id'] ?? 0;
+            $nextNumber = $maxId + 1;
+            $nextAccountCode = 'Acc' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+        } catch (Exception $e) {
+            $error = $e->getMessage();
         } catch (PDOException $e) {
             $error = t('error_adding_account') . ': ' . $e->getMessage();
         }
@@ -80,6 +99,12 @@ include '../includes/header.php';
                 <form method="POST" action="">
                     <div class="row">
                         <div class="col-md-6 mb-3">
+                            <label class="form-label"><?php echo t('account_code'); ?></label>
+                            <input type="text" class="form-control" name="account_code" id="account_code" value="<?php echo $_POST['account_code'] ?? ''; ?>" placeholder="<?php echo $nextAccountCode ?? 'Acc01'; ?>">
+                            <small class="text-muted"><?php echo t('leave_empty_for_auto'); ?></small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
                             <label class="form-label"><?php echo t('account_name'); ?> <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="account_name" value="<?php echo $_POST['account_name'] ?? ''; ?>" required>
                         </div>
@@ -95,18 +120,6 @@ include '../includes/header.php';
                                 <option value="customer" <?php echo (($_POST['account_type'] ?? '') == 'customer') ? 'selected' : ''; ?>><?php echo t('customer'); ?></option>
                                 <option value="supplier" <?php echo (($_POST['account_type'] ?? '') == 'supplier') ? 'selected' : ''; ?>><?php echo t('supplier'); ?></option>
                                 <option value="both" <?php echo (($_POST['account_type'] ?? '') == 'both') ? 'selected' : ''; ?>><?php echo t('both'); ?></option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><?php echo t('user_type'); ?></label>
-                            <select class="form-select" name="user_type_id">
-                                <option value="">-- <?php echo t('select'); ?> --</option>
-                                <?php foreach ($userTypes as $type): ?>
-                                    <option value="<?php echo $type['id']; ?>" <?php echo (($_POST['user_type_id'] ?? '') == $type['id']) ? 'selected' : ''; ?>>
-                                        <?php echo displayTypeNameFull($type); ?>
-                                    </option>
-                                <?php endforeach; ?>
                             </select>
                         </div>
                         
@@ -142,7 +155,7 @@ include '../includes/header.php';
                         
                         <div class="col-md-3 mb-3">
                             <label class="form-label"><?php echo t('opening_balance'); ?></label>
-                            <input type="number" step="0.01" class="form-control" name="opening_balance" value="<?php echo $_POST['opening_balance'] ?? '0'; ?>">
+                            <input type="number" step="0.01" class="form-control" name="opening_balance" value="<?php echo $_POST['opening_balance'] ?? ''; ?>" placeholder="0">
                         </div>
                         
                         <div class="col-md-3 mb-3">

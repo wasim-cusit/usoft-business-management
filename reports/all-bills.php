@@ -87,7 +87,7 @@ include '../includes/header.php';
                                 <?php else: ?>
                                     <?php foreach ($purchases as $purchase): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars($purchase['purchase_no']); ?></td>
+                                            <td><?php echo htmlspecialchars($purchase['purchase_no'] ?? ''); ?></td>
                                             <td><?php echo formatDate($purchase['purchase_date']); ?></td>
                                             <td><?php echo displayAccountNameFull($purchase); ?></td>
                                             <td><?php echo formatCurrency($purchase['net_amount']); ?></td>
@@ -139,7 +139,7 @@ include '../includes/header.php';
                                 <?php else: ?>
                                     <?php foreach ($sales as $sale): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars($sale['sale_no']); ?></td>
+                                            <td><?php echo htmlspecialchars($sale['sale_no'] ?? ''); ?></td>
                                             <td><?php echo formatDate($sale['sale_date']); ?></td>
                                             <td><?php echo displayAccountNameFull($sale); ?></td>
                                             <td><?php echo formatCurrency($sale['net_amount']); ?></td>

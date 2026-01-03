@@ -42,9 +42,14 @@ include '../includes/header.php';
 <div class="page-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
         <h1><i class="fas fa-shopping-cart"></i> <?php echo t('purchase_details_title'); ?></h1>
-        <a href="<?php echo BASE_URL; ?>purchases/list.php" class="btn btn-secondary">
-            <i class="fas fa-arrow-right"></i> <?php echo t('back'); ?>
-        </a>
+        <div class="d-flex gap-2">
+            <a href="<?php echo BASE_URL; ?>purchases/print.php?id=<?php echo $id; ?>" class="btn btn-danger" target="_blank">
+                <i class="fas fa-print"></i> <?php echo t('print'); ?>
+            </a>
+            <a href="<?php echo BASE_URL; ?>purchases/list.php" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> <?php echo t('back'); ?>
+            </a>
+        </div>
     </div>
 </div>
 
@@ -70,10 +75,12 @@ include '../includes/header.php';
                                 <th><?php echo t('supplier'); ?></th>
                                 <td><?php echo displayAccountNameFull($purchase); ?></td>
                             </tr>
+                            <?php /* Commented out Remarks row - user requested
                             <tr>
                                 <th><?php echo t('remarks'); ?></th>
                                 <td><?php echo htmlspecialchars($purchase['remarks'] ?? '-'); ?></td>
                             </tr>
+                            */ ?>
                         </table>
                     </div>
                     <div class="col-md-6">
@@ -128,7 +135,7 @@ include '../includes/header.php';
                                     <tr>
                                         <td><?php echo $index + 1; ?></td>
                                         <td><?php echo displayItemNameFull($item); ?></td>
-                                        <td><?php echo number_format($item['quantity'], 2) . ' ' . htmlspecialchars($item['unit']); ?></td>
+                                        <td><?php echo formatNumber($item['quantity']) . ' ' . htmlspecialchars($item['unit']); ?></td>
                                         <td><?php echo formatCurrency($item['rate']); ?></td>
                                         <td><?php echo formatCurrency($item['amount']); ?></td>
                                     </tr>

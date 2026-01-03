@@ -9,10 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     exit;
 }
 
+$accountCode = trim(sanitizeInput($_POST['account_code'] ?? ''));
 $accountName = sanitizeInput($_POST['account_name'] ?? '');
 $accountNameUrdu = sanitizeInput($_POST['account_name_urdu'] ?? '');
-$accountType = $_POST['account_type'] ?? 'customer';
-$userTypeId = $_POST['user_type_id'] ?? null;
+$accountType = $_POST['account_type'] ?? 'both';
 $contactPerson = sanitizeInput($_POST['contact_person'] ?? '');
 $phone = sanitizeInput($_POST['phone'] ?? '');
 $mobile = sanitizeInput($_POST['mobile'] ?? '');
@@ -22,21 +22,39 @@ $city = sanitizeInput($_POST['city'] ?? '');
 $openingBalance = floatval($_POST['opening_balance'] ?? 0);
 $balanceType = $_POST['balance_type'] ?? 'debit';
 
+// Account name is optional - use Urdu name or account code as fallback
 if (empty($accountName)) {
-    echo json_encode(['success' => false, 'message' => t('please_enter_account_name')]);
-    exit;
+    if (!empty($accountNameUrdu)) {
+        $accountName = $accountNameUrdu;
+    } elseif (!empty($accountCode)) {
+        $accountName = $accountCode;
+    } else {
+        // Generate a default name if nothing is provided
+        $accountName = 'Account ' . date('YmdHis');
+    }
 }
 
 try {
     $db = getDB();
     
-    // Generate account code
-    $stmt = $db->query("SELECT MAX(id) as max_id FROM accounts");
-    $maxId = $stmt->fetch()['max_id'] ?? 0;
-    $accountCode = generateCode('ACC', $maxId);
+    // Generate account code if not provided
+    if (empty($accountCode)) {
+        $stmt = $db->query("SELECT MAX(id) as max_id FROM accounts");
+        $maxId = $stmt->fetch()['max_id'] ?? 0;
+        $nextNumber = $maxId + 1;
+        $accountCode = 'Acc' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+    } else {
+        // Check if account code already exists
+        $stmt = $db->prepare("SELECT id FROM accounts WHERE account_code = ?");
+        $stmt->execute([$accountCode]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => t('account_code_already_exists')]);
+            exit;
+        }
+    }
     
-    $stmt = $db->prepare("INSERT INTO accounts (account_code, account_name, account_name_urdu, account_type, user_type_id, contact_person, phone, mobile, email, address, city, opening_balance, balance_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$accountCode, $accountName, $accountNameUrdu, $accountType, $userTypeId ?: null, $contactPerson, $phone, $mobile, $email, $address, $city, $openingBalance, $balanceType]);
+    $stmt = $db->prepare("INSERT INTO accounts (account_code, account_name, account_name_urdu, account_type, contact_person, phone, mobile, email, address, city, opening_balance, balance_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$accountCode, $accountName, $accountNameUrdu, $accountType, $contactPerson, $phone, $mobile, $email, $address, $city, $openingBalance, $balanceType]);
     
     echo json_encode(['success' => true, 'message' => t('account_added_success')]);
 } catch (PDOException $e) {

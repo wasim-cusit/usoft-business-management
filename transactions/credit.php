@@ -3,119 +3,384 @@ require_once '../config/config.php';
 requireLogin();
 
 $pageTitle = 'credit';
-$success = '';
-$error = '';
 
-// Get accounts
+$search = $_GET['search'] ?? '';
+$dateFrom = $_GET['date_from'] ?? '';
+$dateTo = $_GET['date_to'] ?? '';
+$page = max(1, intval($_GET['page'] ?? 1));
+$limit = RECORDS_PER_PAGE;
+$offset = ($page - 1) * $limit;
+
+// Get accounts for modal
 try {
     $db = getDB();
     $stmt = $db->query("SELECT * FROM accounts WHERE status = 'active' ORDER BY account_name");
     $accounts = $stmt->fetchAll();
+    
+    // Get next transaction number for display
+    $stmt = $db->query("SELECT MAX(id) as max_id FROM transactions WHERE transaction_type = 'credit' AND (reference_type IS NULL OR reference_type != 'journal')");
+    $maxId = $stmt->fetch()['max_id'] ?? 0;
+    $nextNumber = $maxId + 1;
+    $nextTransactionNo = 'Crd' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+    
+    $where = "WHERE t.transaction_type = 'credit'";
+    $params = [];
+    
+    if (!empty($search)) {
+        $where .= " AND (t.transaction_no LIKE ? OR a.account_name LIKE ?)";
+        $searchParam = "%$search%";
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+    }
+    
+    if (!empty($dateFrom)) {
+        $where .= " AND t.transaction_date >= ?";
+        $params[] = $dateFrom;
+    }
+    
+    if (!empty($dateTo)) {
+        $where .= " AND t.transaction_date <= ?";
+        $params[] = $dateTo;
+    }
+    
+    // Get total count
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM transactions t LEFT JOIN accounts a ON t.account_id = a.id $where");
+    $stmt->execute($params);
+    $totalRecords = $stmt->fetch()['total'];
+    $totalPages = ceil($totalRecords / $limit);
+    
+    // Get credit transactions
+    $stmt = $db->prepare("SELECT t.*, a.account_name, a.account_name_urdu FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $where ORDER BY t.id DESC LIMIT ? OFFSET ?");
+    $paramsForQuery = $params;
+    $paramsForQuery[] = $limit;
+    $paramsForQuery[] = $offset;
+    $stmt->execute($paramsForQuery);
+    $transactions = $stmt->fetchAll();
+    
+    // Calculate total for credit transactions
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $where");
+    $stmt->execute($params);
+    $creditTotal = $stmt->fetch()['total'] ?? 0;
+    
 } catch (PDOException $e) {
     $accounts = [];
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $transactionDate = $_POST['transaction_date'] ?? date('Y-m-d');
-    $accountId = intval($_POST['account_id'] ?? 0);
-    $amount = floatval($_POST['amount'] ?? 0);
-    $narration = sanitizeInput($_POST['narration'] ?? '');
-    
-    if (empty($accountId)) {
-        $error = t('please_select_account');
-    } elseif ($amount <= 0) {
-        $error = t('please_enter_amount');
-    } else {
-        try {
-            $db->beginTransaction();
-            
-            // Generate transaction number
-            $stmt = $db->query("SELECT MAX(id) as max_id FROM transactions");
-            $maxId = $stmt->fetch()['max_id'] ?? 0;
-            $transactionNo = generateCode('CRD', $maxId);
-            
-            // Insert transaction
-            $stmt = $db->prepare("INSERT INTO transactions (transaction_no, transaction_date, transaction_type, account_id, amount, narration, created_by) VALUES (?, ?, 'credit', ?, ?, ?, ?)");
-            $stmt->execute([$transactionNo, $transactionDate, $accountId, $amount, $narration, $_SESSION['user_id']]);
-            
-            $db->commit();
-            $success = t('transaction_recorded_success');
-            $_POST = [];
-        } catch (PDOException $e) {
-            $db->rollBack();
-            $error = t('error_recording_transaction') . ': ' . $e->getMessage();
-        }
-    }
+    $transactions = [];
+    $totalPages = 0;
+    $totalRecords = 0;
+    $creditTotal = 0;
+    $nextTransactionNo = 'Crd01';
 }
 
 include '../includes/header.php';
 ?>
+
+<style>
+/* Remove animations from card-header and card-body */
+.card {
+    transition: none !important;
+}
+.card:hover {
+    transform: none !important;
+}
+.card-header {
+    padding: 20px 25px !important;
+    font-size: 18px !important;
+}
+.card-body {
+    animation: none !important;
+}
+</style>
 
 <div class="page-header">
     <h1><i class="fas fa-arrow-up"></i> <?php echo t('credit'); ?></h1>
 </div>
 
 <div class="row">
-    <div class="col-md-6 mx-auto">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><?php echo t('transaction_info'); ?></h5>
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0"><?php echo t('credit'); ?> <?php echo t('transactions'); ?> <span class="badge bg-primary"><?php echo $totalRecords ?? 0; ?></span></h5>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCreditModal">
+                            <i class="fas fa-plus"></i> <?php echo t('add'); ?> <?php echo t('credit'); ?>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
-                <?php if ($success): ?>
-                    <div class="alert alert-success alert-dismissible fade show">
-                        <i class="fas fa-check-circle"></i> <?php echo $success; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <!-- Search and Filter Form -->
+                <form method="GET" action="" class="row g-2 mb-4">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
                     </div>
-                <?php endif; ?>
-                
-                <?php if ($error): ?>
-                    <div class="alert alert-danger alert-dismissible fade show">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control form-control-sm" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" placeholder="<?php echo t('date_from'); ?>">
                     </div>
-                <?php endif; ?>
-                
-                <form method="POST" action="">
-                    <div class="mb-3">
-                        <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" name="transaction_date" value="<?php echo $_POST['transaction_date'] ?? date('Y-m-d'); ?>" required>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control form-control-sm" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>" placeholder="<?php echo t('date_to'); ?>">
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label"><?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
-                        <select class="form-select" name="account_id" required>
-                            <option value="">-- <?php echo t('select'); ?> --</option>
-                            <?php foreach ($accounts as $account): ?>
-                                <option value="<?php echo $account['id']; ?>" <?php echo (($_POST['account_id'] ?? '') == $account['id']) ? 'selected' : ''; ?>>
-                                    <?php echo displayAccountNameFull($account); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control" name="amount" value="<?php echo $_POST['amount'] ?? ''; ?>" required min="0.01">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label"><?php echo t('narration'); ?></label>
-                        <textarea class="form-control" name="narration" rows="3"><?php echo $_POST['narration'] ?? ''; ?></textarea>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-save"></i> <?php echo t('save'); ?>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="fas fa-search"></i> <?php echo t('search'); ?>
                         </button>
-                        <a href="<?php echo BASE_URL; ?>transactions/list.php" class="btn btn-secondary btn-lg w-100 mt-2">
-                            <i class="fas fa-list"></i> <?php echo t('view'); ?> <?php echo t('all_transactions'); ?>
-                        </a>
                     </div>
                 </form>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th><?php echo t('transaction_no'); ?></th>
+                                <th><?php echo t('date'); ?></th>
+                                <th><?php echo t('account_name'); ?></th>
+                                <th><?php echo t('amount'); ?></th>
+                                <th><?php echo t('narration'); ?></th>
+                                <th><?php echo t('actions'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($transactions)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center"><?php echo t('no_records'); ?></td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($transactions as $transaction): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($transaction['transaction_no'] ?? '-'); ?></td>
+                                        <td><?php echo formatDate($transaction['transaction_date']); ?></td>
+                                        <td><?php echo !empty($transaction['account_name']) ? displayAccountNameFull($transaction) : '-'; ?></td>
+                                        <td><strong><?php echo formatCurrency($transaction['amount']); ?></strong></td>
+                                        <td><?php echo htmlspecialchars($transaction['narration'] ?? '-'); ?></td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-warning edit-credit-btn" data-transaction-id="<?php echo $transaction['id']; ?>" data-transaction-no="<?php echo htmlspecialchars($transaction['transaction_no']); ?>" title="<?php echo t('edit'); ?>">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger delete-credit-btn ms-1" data-transaction-id="<?php echo $transaction['id']; ?>" data-transaction-no="<?php echo htmlspecialchars($transaction['transaction_no']); ?>" title="<?php echo t('delete'); ?>">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-success">
+                                <td colspan="3" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
+                                <td><strong><?php echo formatCurrency($creditTotal); ?></strong></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <?php if ($totalPages > 1): ?>
+                    <nav aria-label="<?php echo t('page_navigation'); ?>">
+                        <ul class="pagination justify-content-center">
+                            <?php if ($page > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>"><?php echo t('previous'); ?></a>
+                                </li>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                    <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>"><?php echo $i; ?></a>
+                                </li>
+                            <?php endfor; ?>
+                            
+                            <?php if ($page < $totalPages): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo urlencode($dateFrom); ?>&date_to=<?php echo urlencode($dateTo); ?>"><?php echo t('next'); ?></a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
+
+<!-- New Credit Modal -->
+<div class="modal fade" id="newCreditModal" tabindex="-1" aria-labelledby="newCreditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newCreditModalLabel">
+                    <i class="fas fa-arrow-up"></i> <?php echo t('add'); ?> <?php echo t('credit'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="creditFormMessage"></div>
+                <form id="creditForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('transaction_no'); ?></label>
+                            <input type="text" class="form-control" name="transaction_no" id="credit_transaction_no" placeholder="<?php echo $nextTransactionNo ?? 'Crd01'; ?>">
+                            <small class="text-muted"><?php echo t('leave_empty_for_auto'); ?></small>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="transaction_date" id="credit_date" value="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('select_account'); ?> <span class="text-danger">*</span></label>
+                            <select class="form-select" name="account_id" id="credit_account_id" required>
+                                <option value="">-- <?php echo t('select'); ?> --</option>
+                                <?php foreach ($accounts as $account): ?>
+                                    <option value="<?php echo $account['id']; ?>">
+                                        <?php echo displayAccountNameFull($account); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label"><?php echo t('amount'); ?> <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" name="amount" id="credit_amount" required min="0.01" placeholder="0">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('narration'); ?></label>
+                        <textarea class="form-control" name="narration" id="credit_narration" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> <?php echo t('cancel'); ?>
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveNewCredit()">
+                    <i class="fas fa-save"></i> <?php echo t('save'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveNewCredit() {
+    const form = document.getElementById('creditForm');
+    const formData = new FormData(form);
+    const messageDiv = document.getElementById('creditFormMessage');
+    const saveBtn = event.target;
+    const originalText = saveBtn.innerHTML;
+    
+    // Validate
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Disable button and show loading
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('saving'); ?>...';
+    messageDiv.innerHTML = '';
+    
+    fetch('<?php echo BASE_URL; ?>transactions/credit-ajax.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal immediately
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newCreditModal'));
+            modal.hide();
+            
+            // Reset form
+            form.reset();
+            document.getElementById('credit_date').value = '<?php echo date('Y-m-d'); ?>';
+            
+            // Show notification only in fixed position (not in modal)
+            showNotification(data.message, 'success');
+            
+            // Reload after 2 seconds to show notification
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            // Show error only in modal (not in fixed position for validation errors)
+            messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + data.message + '</div>';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        // Show error in modal for network errors
+        messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?php echo t('error_recording_transaction'); ?></div>';
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    });
+}
+
+// Reset form when modal is closed
+document.getElementById('newCreditModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('creditForm').reset();
+    document.getElementById('creditFormMessage').innerHTML = '';
+    document.getElementById('credit_date').value = '<?php echo date('Y-m-d'); ?>';
+});
+
+// Delete credit transaction
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-credit-btn')) {
+        const btn = e.target.closest('.delete-credit-btn');
+        const transactionId = btn.getAttribute('data-transaction-id');
+        const transactionNo = btn.getAttribute('data-transaction-no');
+        
+        if (confirm('<?php echo t('are_you_sure_delete'); ?> Transaction "' + transactionNo + '"?')) {
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch('<?php echo BASE_URL; ?>transactions/delete-ajax.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=' + transactionId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                showNotification('<?php echo t('error_deleting_transaction'); ?>', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+        }
+    }
+    
+    // Edit credit transaction - open edit modal
+    if (e.target.closest('.edit-credit-btn')) {
+        const btn = e.target.closest('.edit-credit-btn');
+        const transactionId = btn.getAttribute('data-transaction-id');
+        // Redirect to edit page or open edit modal
+        window.location.href = '<?php echo BASE_URL; ?>transactions/edit-credit.php?id=' + transactionId;
+    }
+});
+</script>
 
 <?php include '../includes/footer.php'; ?>

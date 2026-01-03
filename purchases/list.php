@@ -42,23 +42,66 @@ try {
     }
     
     // Get total count
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM purchases p LEFT JOIN accounts a ON p.account_id = a.id $where");
+    $stmt = $db->prepare("SELECT COUNT(DISTINCT p.id) as total FROM purchases p LEFT JOIN accounts a ON p.account_id = a.id $where");
     $stmt->execute($params);
     $totalRecords = $stmt->fetch()['total'];
     $totalPages = ceil($totalRecords / $limit);
     
-    // Get purchases
-    $stmt = $db->prepare("SELECT p.*, a.account_name, a.account_name_urdu FROM purchases p 
+    // Get purchases first
+    $paramsForQuery = $params;
+    $paramsForQuery[] = $limit;
+    $paramsForQuery[] = $offset;
+    $stmt = $db->prepare("SELECT p.*, a.account_name, a.account_name_urdu, a.mobile, a.phone as account_phone
+                         FROM purchases p 
                          LEFT JOIN accounts a ON p.account_id = a.id 
-                         $where ORDER BY p.id DESC LIMIT ? OFFSET ?");
-    $params[] = $limit;
-    $params[] = $offset;
-    $stmt->execute($params);
+                         $where 
+                         ORDER BY p.id DESC LIMIT ? OFFSET ?");
+    $stmt->execute($paramsForQuery);
     $purchases = $stmt->fetchAll();
+    
+    // Get item totals for each purchase
+    foreach ($purchases as &$purchase) {
+        $stmt = $db->prepare("SELECT 
+                             COALESCE(SUM(pi.qty + pi.bag), 0) as total_qty,
+                             COALESCE(SUM(pi.wt), 0) as total_weight,
+                             COALESCE(SUM(pi.amount), 0) as total_amount
+                             FROM purchase_items pi 
+                             WHERE pi.purchase_id = ?");
+        $stmt->execute([$purchase['id']]);
+        $totals = $stmt->fetch();
+        $purchase['total_qty'] = floatval($totals['total_qty'] ?? 0);
+        $purchase['total_weight'] = floatval($totals['total_weight'] ?? 0);
+        $purchase['total_amount'] = floatval($totals['total_amount'] ?? 0);
+    }
+    unset($purchase);
+    
+    // Calculate totals
+    $stmt = $db->prepare("SELECT 
+                            COALESCE(SUM(p.total_amount), 0) as total_amount,
+                            COALESCE(SUM(p.discount), 0) as total_discount,
+                            COALESCE(SUM(p.net_amount), 0) as total_net_amount,
+                            COALESCE(SUM(p.paid_amount), 0) as total_paid_amount,
+                            COALESCE(SUM(p.balance_amount), 0) as total_balance_amount
+                         FROM purchases p 
+                         LEFT JOIN accounts a ON p.account_id = a.id 
+                         $where");
+    $stmt->execute($params);
+    $totals = $stmt->fetch();
+    $totalAmount = $totals['total_amount'] ?? 0;
+    $totalDiscount = $totals['total_discount'] ?? 0;
+    $totalNetAmount = $totals['total_net_amount'] ?? 0;
+    $totalPaidAmount = $totals['total_paid_amount'] ?? 0;
+    $totalBalanceAmount = $totals['total_balance_amount'] ?? 0;
     
 } catch (PDOException $e) {
     $purchases = [];
     $totalPages = 0;
+    $totalRecords = 0;
+    $totalAmount = 0;
+    $totalDiscount = 0;
+    $totalNetAmount = 0;
+    $totalPaidAmount = 0;
+    $totalBalanceAmount = 0;
 }
 
 include '../includes/header.php';
@@ -73,13 +116,8 @@ include '../includes/header.php';
     transform: none !important;
 }
 .card-header {
-    animation: none !important;
-    padding: 15px 20px !important;
-    font-size: 16px !important;
-}
-.card-header::before {
-    animation: none !important;
-    display: none !important;
+    padding: 20px 25px !important;
+    font-size: 18px !important;
 }
 .card-body {
     animation: none !important;
@@ -96,84 +134,78 @@ include '../includes/header.php';
 .btn:hover {
     transform: none !important;
 }
+/* Ensure footer displays in one row */
+.table tfoot tr {
+    display: table-row !important;
+}
+.table tfoot td {
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
 </style>
-
-<div class="page-header">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="fas fa-shopping-cart"></i> <?php echo t('all_purchases_list'); ?></h1>
-        <button type="button" class="btn btn-primary mt-2 mt-md-0" data-bs-toggle="modal" data-bs-target="#newPurchaseModal">
-            <i class="fas fa-plus"></i> <?php echo t('new_purchase'); ?>
-        </button>
-    </div>
-</div>
 
 <div class="row">
     <div class="col-md-12">
+        <div style="background: #f5f5f5; padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="margin: 0; font-size: 16px; font-weight: 600; color: #333;">
+                <i class="fas fa-shopping-cart"></i> <?php echo t('all_purchases'); ?>
+            </h5>
+            <a href="<?php echo BASE_URL; ?>purchases/create.php" class="btn btn-primary btn-sm" style="padding: 8px 16px; font-size: 14px; border-radius: 6px;">
+                <i class="fas fa-plus"></i> <?php echo t('add_purchase'); ?>
+            </a>
+        </div>
+        
         <div class="card">
-            <div class="card-header">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <h5 class="mb-0"><?php echo t('all_purchases'); ?></h5>
-                    </div>
-                    <div class="col-md-6">
-                        <form method="GET" class="row g-2">
-                            <div class="col-md-4">
-                                <input type="text" class="form-control form-control-sm" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo t('search'); ?>...">
-                            </div>
-                            <div class="col-md-3">
-                                <input type="date" class="form-control form-control-sm" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>" placeholder="<?php echo t('date_from'); ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <input type="date" class="form-control form-control-sm" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>" placeholder="<?php echo t('date_to'); ?>">
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary btn-sm w-100">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+            <div class="card-body" style="padding: 0;">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover mb-0" style="margin-bottom: 0;">
+                        <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
                             <tr>
-                                <th><?php echo t('bill_no'); ?></th>
-                                <th><?php echo t('date'); ?></th>
-                                <th><?php echo t('supplier'); ?></th>
-                                <th><?php echo t('total'); ?></th>
-                                <th><?php echo t('discount'); ?></th>
-                                <th><?php echo t('net_amount'); ?></th>
-                                <th><?php echo t('paid_amount'); ?></th>
-                                <th><?php echo t('balance'); ?></th>
-                                <th><?php echo t('actions'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('inv_number'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('date'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo getLang() == 'ur' ? t('name') . ' Name' : 'Name'; ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('location'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('details'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('phone'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('bilti'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('qty'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('weight'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('amount'); ?></th>
+                                <th style="padding: 10px; font-size: 13px; font-weight: 600;"><?php echo t('actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($purchases)): ?>
                                 <tr>
-                                    <td colspan="9" class="text-center"><?php echo t('no_records'); ?></td>
+                                    <td colspan="11" class="text-center" style="padding: 20px;"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
-                                <?php foreach ($purchases as $purchase): ?>
+                                <?php foreach ($purchases as $purchase): 
+                                    $qty = floatval($purchase['total_qty'] ?? 0);
+                                    $weight = floatval($purchase['total_weight'] ?? 0);
+                                    $amount = floatval($purchase['total_amount'] ?? 0);
+                                    $accountName = displayAccountNameFull($purchase);
+                                ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($purchase['purchase_no']); ?></td>
-                                        <td><?php echo formatDate($purchase['purchase_date']); ?></td>
-                                        <td><?php echo displayAccountNameFull($purchase); ?></td>
-                                        <td><?php echo formatCurrency($purchase['total_amount']); ?></td>
-                                        <td><?php echo formatCurrency($purchase['discount']); ?></td>
-                                        <td><strong><?php echo formatCurrency($purchase['net_amount']); ?></strong></td>
-                                        <td><?php echo formatCurrency($purchase['paid_amount']); ?></td>
-                                        <td>
-                                            <span class="badge <?php echo $purchase['balance_amount'] > 0 ? 'bg-warning' : 'bg-success'; ?>">
-                                                <?php echo formatCurrency($purchase['balance_amount']); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a href="<?php echo BASE_URL; ?>purchases/view.php?id=<?php echo $purchase['id']; ?>" class="btn btn-sm btn-info">
-                                                <i class="fas fa-eye"></i>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo htmlspecialchars($purchase['purchase_no']); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo date('Y-m-d', strtotime($purchase['purchase_date'])); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo htmlspecialchars($accountName); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo htmlspecialchars($purchase['location'] ?? ''); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo htmlspecialchars($purchase['details'] ?? ''); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo htmlspecialchars($purchase['phone'] ?? $purchase['account_phone'] ?? $purchase['mobile'] ?? ''); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px;"><?php echo htmlspecialchars($purchase['bilti'] ?? ''); ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px; text-align: right;"><?php echo $qty > 0 ? formatNumber($qty) : ''; ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px; text-align: right;"><?php echo $weight > 0 ? formatNumber($weight) : ''; ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px; text-align: right;"><?php echo $amount > 0 ? formatNumber($amount) : ''; ?></td>
+                                        <td style="padding: 8px 10px; font-size: 13px; text-align: center;">
+                                            <a href="<?php echo BASE_URL; ?>purchases/edit.php?id=<?php echo $purchase['id']; ?>" class="btn btn-sm btn-warning" title="<?php echo t('edit'); ?>" style="padding: 2px 6px; font-size: 12px; margin-right: 3px;">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger delete-purchase-btn" data-purchase-id="<?php echo $purchase['id']; ?>" data-purchase-no="<?php echo htmlspecialchars($purchase['purchase_no']); ?>" title="<?php echo t('delete'); ?>" style="padding: 2px 6px; font-size: 12px; margin-right: 3px;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            <a href="<?php echo BASE_URL; ?>purchases/print.php?id=<?php echo $purchase['id']; ?>" class="btn btn-sm btn-secondary" target="_blank" title="<?php echo t('print'); ?>" style="padding: 2px 6px; font-size: 12px;">
+                                                <i class="fas fa-print"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -224,15 +256,19 @@ include '../includes/header.php';
             <div class="modal-body">
                 <div id="purchaseFormMessage"></div>
                 <form id="newPurchaseForm">
-                    <div class="row">
-                        <div class="col-md-2 mb-3">
+                    <!-- Top Section: Date, Number, Name Party, Location, Details, Phone, Bilti -->
+                    <div class="row mb-2">
+                        <div class="col-md-2 mb-2">
                             <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="purchase_date" id="purchase_date" value="<?php echo date('Y-m-d'); ?>" required>
+                            <input type="date" class="form-control form-control-sm" name="purchase_date" id="purchase_date" value="<?php echo date('Y-m-d'); ?>" required>
                         </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label"><?php echo t('supplier'); ?> <span class="text-danger">*</span></label>
-                            <select class="form-select" name="account_id" id="account_id" required>
+                        <div class="col-md-1 mb-2">
+                            <label class="form-label"><?php echo t('inv_number'); ?></label>
+                            <input type="text" class="form-control form-control-sm" name="purchase_no" id="purchase_no" placeholder="4">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label"><?php echo t('name_party'); ?> <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" name="account_id" id="account_id" required>
                                 <option value="">-- <?php echo t('select'); ?> --</option>
                                 <?php foreach ($suppliers as $supplier): ?>
                                     <option value="<?php echo $supplier['id']; ?>">
@@ -241,73 +277,188 @@ include '../includes/header.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><?php echo t('remarks'); ?></label>
-                            <input type="text" class="form-control" name="remarks" id="remarks">
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label"><?php echo t('location'); ?></label>
+                            <input type="text" class="form-control form-control-sm" name="location" placeholder="<?php echo t('location'); ?>">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label"><?php echo t('details'); ?></label>
+                            <input type="text" class="form-control form-control-sm" name="details" placeholder="<?php echo t('details'); ?>">
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            <label class="form-label"><?php echo t('phone'); ?></label>
+                            <input type="text" class="form-control form-control-sm" name="phone" placeholder="<?php echo t('phone'); ?>">
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            <label class="form-label"><?php echo t('bilti'); ?></label>
+                            <input type="text" class="form-control form-control-sm" name="bilti" placeholder="<?php echo t('bilti'); ?>">
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            <label class="form-label"><?php echo t('rate_type'); ?></label>
+                            <div class="form-check form-check-sm">
+                                <input class="form-check-input" type="radio" name="rate_type" id="modal_rate_kilo" value="kilo" checked>
+                                <label class="form-check-label" for="modal_rate_kilo"><?php echo t('rate_kilo'); ?></label>
+                            </div>
+                            <div class="form-check form-check-sm">
+                                <input class="form-check-input" type="radio" name="rate_type" id="modal_rate_mann" value="mann">
+                                <label class="form-check-label" for="modal_rate_mann"><?php echo t('rate_mann'); ?></label>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="mb-3">
+                    <!-- Item Entry Section -->
+                    <div class="mb-2">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0"><strong><?php echo t('items'); ?></strong></h6>
-                            <button type="button" class="btn btn-sm btn-success" id="addPurchaseRow">
-                                <i class="fas fa-plus"></i> <?php echo t('add'); ?>
-                            </button>
                         </div>
+                        <!-- Item Entry Row -->
+                        <div class="row mb-2 align-items-end">
+                            <div class="col-md-2">
+                                <label class="form-label small"><?php echo t('item_name'); ?></label>
+                                <select class="form-select form-select-sm item-select-modal" id="modalItemSelect">
+                                    <option value="">-- <?php echo t('select'); ?> --</option>
+                                    <?php 
+                                    $stmt = $db->query("SELECT *, 
+                                        CASE 
+                                            WHEN description LIKE '%Purchase Rate Mann:%' 
+                                            THEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(description, 'Purchase Rate Mann: ', -1), '|', 1) AS DECIMAL(15,2))
+                                            ELSE purchase_rate * 40 
+                                        END as purchase_rate_mann
+                                        FROM items WHERE status = 'active' ORDER BY item_name");
+                                    $modalItems = $stmt->fetchAll();
+                                    foreach ($modalItems as $item): 
+                                        $purchaseRateMann = $item['purchase_rate_mann'] ?? ($item['purchase_rate'] * 40);
+                                        if (isset($item['description']) && preg_match('/Purchase Rate Mann:\s*([0-9.]+)/', $item['description'], $matches)) {
+                                            $purchaseRateMann = floatval($matches[1]);
+                                        }
+                                    ?>
+                                        <option value="<?php echo $item['id']; ?>" data-rate-kilo="<?php echo $item['purchase_rate']; ?>" data-rate-mann="<?php echo $purchaseRateMann; ?>">
+                                            <?php echo htmlspecialchars($item['item_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small"><?php echo t('qty'); ?></label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="modalItemQty" placeholder="0">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small"><?php echo t('bharti'); ?></label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="modalItemBag" placeholder="0">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small"><?php echo t('weight'); ?></label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="modalItemWt" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small"><?php echo t('cut'); ?></label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="modalItemKate" placeholder="0">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small"><?php echo t('rate'); ?></label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="modalItemRate" placeholder="0">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small"><?php echo t('amount'); ?></label>
+                                <input type="text" class="form-control form-control-sm" id="modalItemAmount" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small">&nbsp;</label>
+                                <button type="button" class="btn btn-success btn-sm w-100" id="addModalItemBtn"><?php echo t('enter'); ?></button>
+                            </div>
+                        </div>
+                        
+                        <!-- Items Table -->
                         <div class="table-responsive">
-                            <table class="table table-bordered table-sm">
+                            <table class="table table-bordered table-sm" id="modalItemsTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th><?php echo t('item_name'); ?></th>
-                                        <th width="18%"><?php echo t('quantity'); ?></th>
-                                        <th width="18%"><?php echo t('rate'); ?></th>
-                                        <th width="18%"><?php echo t('amount'); ?></th>
-                                        <th width="8%"><?php echo t('actions'); ?></th>
+                                        <th><?php echo t('goods_account'); ?></th>
+                                        <th><?php echo t('quantity'); ?></th>
+                                        <th><?php echo t('weight'); ?></th>
+                                        <th><?php echo t('cut'); ?></th>
+                                        <th><?php echo t('rate'); ?></th>
+                                        <th><?php echo t('amount'); ?></th>
+                                        <th>D/E</th>
+                                        <th><?php echo t('actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="purchaseItemsBody">
-                                    <tr>
-                                        <td>
-                                            <select class="form-select form-select-sm item-select" name="item_id[]" required>
-                                                <option value="">-- <?php echo t('select'); ?> --</option>
-                                                <?php foreach ($items as $item): ?>
-                                                    <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['purchase_rate']; ?>">
-                                                        <?php echo htmlspecialchars($item['item_name']); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </td>
-                                        <td><input type="number" step="0.01" class="form-control form-control-sm quantity" name="quantity[]" required></td>
-                                        <td><input type="number" step="0.01" class="form-control form-control-sm rate" name="rate[]" required></td>
-                                        <td><input type="text" class="form-control form-control-sm amount" readonly></td>
-                                        <td><button type="button" class="btn btn-danger btn-sm remove-purchase-row" disabled><i class="fas fa-times"></i></button></td>
-                                    </tr>
+                                    <!-- Items will be added here dynamically -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                     
+                    <!-- Summary and Expenses Section -->
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><?php echo t('total'); ?></label>
-                            <input type="text" class="form-control" id="total_amount" readonly>
+                        <div class="col-md-8">
+                            <!-- Left side empty for now -->
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><?php echo t('discount'); ?></label>
-                            <input type="number" step="0.01" class="form-control" name="discount" id="discount" value="0">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><?php echo t('net_amount'); ?></label>
-                            <input type="text" class="form-control" id="net_amount" readonly>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label"><?php echo t('paid_amount'); ?></label>
-                            <input type="number" step="0.01" class="form-control" name="paid_amount" id="paid_amount" value="0">
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label"><?php echo t('balance'); ?></label>
-                            <input type="text" class="form-control" id="balance_amount" readonly>
+                        <div class="col-md-4">
+                            <div class="card card-sm mb-2">
+                                <div class="card-header bg-light py-1">
+                                    <h6 class="mb-0 small"><?php echo t('expenses'); ?></h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('rent'); ?></label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="rent" id="modal_rent" value="0" placeholder="0">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('loading'); ?></label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="loading" id="modal_loading" value="0" placeholder="0">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('labor'); ?></label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="labor" id="modal_labor" value="0" placeholder="0">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('brokerage'); ?></label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="brokerage" id="modal_brokerage" value="0" placeholder="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card card-sm">
+                                <div class="card-header bg-light py-1">
+                                    <h6 class="mb-0 small"><?php echo t('summary'); ?></h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('total_qty'); ?></label>
+                                        <input type="text" class="form-control form-control-sm" id="modal_total_qty" readonly value="0.00">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('total_weight'); ?></label>
+                                        <input type="text" class="form-control form-control-sm" id="modal_total_weight" readonly value="0.00">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('total_amount_label'); ?></label>
+                                        <input type="text" class="form-control form-control-sm" id="modal_total_amount" readonly value="0.00">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('total_exp'); ?></label>
+                                        <input type="text" class="form-control form-control-sm" id="modal_total_expenses" readonly value="0.00">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><strong><?php echo t('grand_total'); ?></strong></label>
+                                        <input type="text" class="form-control form-control-sm" id="modal_grand_total" readonly value="0.00">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('discount'); ?></label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="discount" id="modal_discount" value="0" placeholder="0">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('paid_amount'); ?></label>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="paid_amount" id="modal_paid_amount" value="0" placeholder="0">
+                                    </div>
+                                    <div class="mb-1">
+                                        <label class="form-label small"><?php echo t('balance_amount'); ?></label>
+                                        <input type="text" class="form-control form-control-sm" id="modal_balance_amount" readonly value="0.00">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -325,95 +476,172 @@ include '../includes/header.php';
 </div>
 
 <script>
-// Add new row
-document.getElementById('addPurchaseRow').addEventListener('click', function() {
-    const tbody = document.getElementById('purchaseItemsBody');
-    const firstRow = tbody.querySelector('tr');
-    const newRow = firstRow.cloneNode(true);
+// Calculate weight (qty + bag) for modal
+document.getElementById('modalItemQty')?.addEventListener('input', calculateModalItemAmount);
+document.getElementById('modalItemBag')?.addEventListener('input', calculateModalItemAmount);
+
+function calculateModalItemAmount() {
+    const qty = parseFloat(document.getElementById('modalItemQty')?.value) || 0;
+    const bag = parseFloat(document.getElementById('modalItemBag')?.value) || 0;
+    const wt = qty + bag;
+    document.getElementById('modalItemWt').value = formatNumber(wt);
     
-    // Clear values
-    newRow.querySelector('.item-select').value = '';
-    newRow.querySelector('.quantity').value = '';
-    newRow.querySelector('.rate').value = '';
-    newRow.querySelector('.amount').value = '';
-    newRow.querySelector('.remove-purchase-row').disabled = false;
-    
-    tbody.appendChild(newRow);
-    updateRemoveButtons();
+    const kate = parseFloat(document.getElementById('modalItemKate')?.value) || 0;
+    const rate = parseFloat(document.getElementById('modalItemRate')?.value) || 0;
+    const netWeight = wt - kate;
+    const amount = netWeight * rate;
+    document.getElementById('modalItemAmount').value = formatNumber(amount);
+}
+
+document.getElementById('modalItemWt')?.addEventListener('input', calculateModalItemAmount);
+document.getElementById('modalItemKate')?.addEventListener('input', calculateModalItemAmount);
+document.getElementById('modalItemRate')?.addEventListener('input', calculateModalItemAmount);
+
+// Set rate when item selected in modal
+document.getElementById('modalItemSelect')?.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const rateType = document.querySelector('input[name="rate_type"]:checked')?.value || 'kilo';
+    const rate = rateType == 'mann' ? selectedOption.getAttribute('data-rate-mann') : selectedOption.getAttribute('data-rate-kilo');
+    if (rate) {
+        document.getElementById('modalItemRate').value = rate;
+        calculateModalItemAmount();
+    }
 });
 
-// Remove row
+// Update rate when rate type changes in modal
+document.querySelectorAll('input[name="rate_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const selectedOption = document.getElementById('modalItemSelect')?.options[document.getElementById('modalItemSelect')?.selectedIndex];
+        if (selectedOption?.value) {
+            const rateType = this.value;
+            const rate = rateType == 'mann' ? selectedOption.getAttribute('data-rate-mann') : selectedOption.getAttribute('data-rate-kilo');
+            if (rate) {
+                document.getElementById('modalItemRate').value = rate;
+                calculateModalItemAmount();
+            }
+        }
+    });
+});
+
+// Add item to modal table
+document.getElementById('addModalItemBtn')?.addEventListener('click', function() {
+    const itemId = document.getElementById('modalItemSelect')?.value;
+    const itemName = document.getElementById('modalItemSelect')?.options[document.getElementById('modalItemSelect')?.selectedIndex]?.text;
+    const qty = parseFloat(document.getElementById('modalItemQty')?.value) || 0;
+    const bag = parseFloat(document.getElementById('modalItemBag')?.value) || 0;
+    const wt = parseFloat(document.getElementById('modalItemWt')?.value) || 0;
+    const kate = parseFloat(document.getElementById('modalItemKate')?.value) || 0;
+    const rate = parseFloat(document.getElementById('modalItemRate')?.value) || 0;
+    const amount = parseFloat(document.getElementById('modalItemAmount')?.value.replace(/,/g, '')) || 0;
+    const netWeight = wt - kate;
+    
+    if (!itemId || !wt || !rate) {
+        alert('<?php echo t('please_enter_item_details'); ?>');
+        return;
+    }
+    
+    const tbody = document.getElementById('purchaseItemsBody');
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-item-id', itemId);
+    newRow.setAttribute('data-qty', qty);
+    newRow.setAttribute('data-bag', bag);
+    newRow.setAttribute('data-wt', wt);
+    newRow.setAttribute('data-kate', kate);
+    newRow.setAttribute('data-rate', rate);
+    newRow.setAttribute('data-amount', amount);
+    
+    newRow.innerHTML = `
+        <td>${itemName}</td>
+        <td>${formatNumber(netWeight)}</td>
+        <td>${formatNumber(wt)}</td>
+        <td>${formatNumber(kate)}</td>
+        <td>${formatNumber(rate)}</td>
+        <td>${formatNumber(amount)}</td>
+        <td>D</td>
+        <td>
+            <input type="hidden" name="item_id[]" value="${itemId}">
+            <input type="hidden" name="qty[]" value="${qty}">
+            <input type="hidden" name="bag[]" value="${bag}">
+            <input type="hidden" name="wt[]" value="${wt}">
+            <input type="hidden" name="kate[]" value="${kate}">
+            <input type="hidden" name="rate[]" value="${rate}">
+            <input type="hidden" name="amount[]" value="${amount}">
+            <button type="button" class="btn btn-danger btn-sm remove-purchase-row"><i class="fas fa-times"></i></button>
+        </td>
+    `;
+    tbody.appendChild(newRow);
+    
+    // Clear input fields
+    document.getElementById('modalItemSelect').value = '';
+    document.getElementById('modalItemQty').value = '';
+    document.getElementById('modalItemBag').value = '';
+    document.getElementById('modalItemWt').value = '';
+    document.getElementById('modalItemKate').value = '';
+    document.getElementById('modalItemRate').value = '';
+    document.getElementById('modalItemAmount').value = '';
+    
+    calculateModalTotals();
+});
+
+// Remove row from modal table
 document.addEventListener('click', function(e) {
     if (e.target.closest('.remove-purchase-row')) {
-        const tbody = document.getElementById('purchaseItemsBody');
-        if (tbody.querySelectorAll('tr').length > 1) {
-            e.target.closest('tr').remove();
-            calculatePurchaseTotal();
-            updateRemoveButtons();
-        }
+        e.target.closest('tr').remove();
+        calculateModalTotals();
     }
 });
 
-// Update remove buttons state
-function updateRemoveButtons() {
-    const tbody = document.getElementById('purchaseItemsBody');
-    const rows = tbody.querySelectorAll('tr');
-    rows.forEach((row, index) => {
-        const btn = row.querySelector('.remove-purchase-row');
-        btn.disabled = rows.length === 1;
-    });
-}
-
-// Calculate amount for a row
-document.addEventListener('input', function(e) {
-    if (e.target.classList.contains('quantity') || e.target.classList.contains('rate')) {
-        const row = e.target.closest('tr');
-        const qty = parseFloat(row.querySelector('.quantity').value) || 0;
-        const rate = parseFloat(row.querySelector('.rate').value) || 0;
-        const amount = qty * rate;
-        row.querySelector('.amount').value = amount.toFixed(2);
-        calculatePurchaseTotal();
-    }
-});
-
-// Set rate when item selected
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('item-select')) {
-        const selectedOption = e.target.options[e.target.selectedIndex];
-        const rate = selectedOption.getAttribute('data-rate');
-        if (rate) {
-            e.target.closest('tr').querySelector('.rate').value = rate;
-            const qty = parseFloat(e.target.closest('tr').querySelector('.quantity').value) || 0;
-            const amount = qty * parseFloat(rate);
-            e.target.closest('tr').querySelector('.amount').value = amount.toFixed(2);
-            calculatePurchaseTotal();
-        }
-    }
-});
-
-// Calculate totals
-function calculatePurchaseTotal() {
+// Calculate modal totals
+function calculateModalTotals() {
     const rows = document.querySelectorAll('#purchaseItemsBody tr');
-    let total = 0;
+    let totalQty = 0;
+    let totalWeight = 0;
+    let totalAmount = 0;
     
     rows.forEach(row => {
-        const amount = parseFloat(row.querySelector('.amount').value) || 0;
-        total += amount;
+        const qty = parseFloat(row.getAttribute('data-qty')) || 0;
+        const bag = parseFloat(row.getAttribute('data-bag')) || 0;
+        const wt = parseFloat(row.getAttribute('data-wt')) || 0;
+        const kate = parseFloat(row.getAttribute('data-kate')) || 0;
+        const amount = parseFloat(row.getAttribute('data-amount')) || 0;
+        
+        const netWeight = wt - kate;
+        totalQty += netWeight;
+        totalWeight += wt;
+        totalAmount += amount;
     });
     
-    const discount = parseFloat(document.getElementById('discount').value) || 0;
-    const paidAmount = parseFloat(document.getElementById('paid_amount').value) || 0;
-    const netAmount = total - discount;
-    const balance = netAmount - paidAmount;
+    if (document.getElementById('modal_total_qty')) document.getElementById('modal_total_qty').value = formatNumber(totalQty);
+    if (document.getElementById('modal_total_weight')) document.getElementById('modal_total_weight').value = formatNumber(totalWeight);
+    if (document.getElementById('modal_total_amount')) document.getElementById('modal_total_amount').value = formatNumber(totalAmount);
     
-    document.getElementById('total_amount').value = total.toFixed(2);
-    document.getElementById('net_amount').value = netAmount.toFixed(2);
-    document.getElementById('balance_amount').value = balance.toFixed(2);
+    // Calculate expenses
+    const rent = parseFloat(document.getElementById('modal_rent')?.value) || 0;
+    const loading = parseFloat(document.getElementById('modal_loading')?.value) || 0;
+    const labor = parseFloat(document.getElementById('modal_labor')?.value) || 0;
+    const brokerage = parseFloat(document.getElementById('modal_brokerage')?.value) || 0;
+    const totalExpenses = rent + loading + labor + brokerage;
+    if (document.getElementById('modal_total_expenses')) document.getElementById('modal_total_expenses').value = formatNumber(totalExpenses);
+    
+    // Calculate grand total
+    const discount = parseFloat(document.getElementById('modal_discount')?.value) || 0;
+    const netAmount = totalAmount - discount;
+    const grandTotal = netAmount + totalExpenses;
+    if (document.getElementById('modal_grand_total')) document.getElementById('modal_grand_total').value = formatNumber(grandTotal);
+    
+    // Calculate balance
+    const paid = parseFloat(document.getElementById('modal_paid_amount')?.value) || 0;
+    const balance = grandTotal - paid;
+    if (document.getElementById('modal_balance_amount')) document.getElementById('modal_balance_amount').value = formatNumber(balance);
 }
 
-// Calculate on discount/paid amount change
-document.getElementById('discount').addEventListener('input', calculatePurchaseTotal);
-document.getElementById('paid_amount').addEventListener('input', calculatePurchaseTotal);
+// Update totals when expenses, discount, or paid amount changes
+document.getElementById('modal_rent')?.addEventListener('input', calculateModalTotals);
+document.getElementById('modal_loading')?.addEventListener('input', calculateModalTotals);
+document.getElementById('modal_labor')?.addEventListener('input', calculateModalTotals);
+document.getElementById('modal_brokerage')?.addEventListener('input', calculateModalTotals);
+document.getElementById('modal_discount')?.addEventListener('input', calculateModalTotals);
+document.getElementById('modal_paid_amount')?.addEventListener('input', calculateModalTotals);
 
 function saveNewPurchase() {
     const form = document.getElementById('newPurchaseForm');
@@ -431,12 +659,12 @@ function saveNewPurchase() {
     
     // Validate items
     const itemIds = formData.getAll('item_id[]');
-    const quantities = formData.getAll('quantity[]');
+    const wts = formData.getAll('wt[]');
     const rates = formData.getAll('rate[]');
     
     let hasValidItem = false;
     for (let i = 0; i < itemIds.length; i++) {
-        if (itemIds[i] && quantities[i] && rates[i]) {
+        if (itemIds[i] && wts[i] && rates[i]) {
             hasValidItem = true;
             break;
         }
@@ -501,7 +729,205 @@ document.getElementById('newPurchaseModal').addEventListener('hidden.bs.modal', 
     updateRemoveButtons();
     calculatePurchaseTotal();
 });
+
+// Delete purchase functionality - use event delegation
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-purchase-btn')) {
+        const btn = e.target.closest('.delete-purchase-btn');
+        const purchaseId = btn.getAttribute('data-purchase-id');
+        const purchaseNo = btn.getAttribute('data-purchase-no');
+        
+        if (confirm('<?php echo t('are_you_sure_delete'); ?> Purchase "' + purchaseNo + '"?')) {
+            // Show loading
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch('<?php echo BASE_URL; ?>purchases/delete-ajax.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=' + purchaseId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                showNotification('<?php echo t('error_deleting_purchase'); ?>', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+        }
+    }
+});
+
+// WhatsApp share functionality for purchases
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.whatsapp-share-purchase-btn')) {
+        const btn = e.target.closest('.whatsapp-share-purchase-btn');
+        const purchaseId = btn.getAttribute('data-purchase-id');
+        const purchaseNo = btn.getAttribute('data-purchase-no');
+        const mobile = btn.getAttribute('data-mobile') || '';
+        const phone = btn.getAttribute('data-phone') || '';
+        const phoneNumber = mobile || phone;
+        
+        document.getElementById('whatsapp_purchase_id').value = purchaseId;
+        document.getElementById('whatsapp_purchase_no').textContent = purchaseNo;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('whatsappPurchaseShareModal'));
+        modal.show();
+        
+        // Set phone number if available (after modal is shown)
+        setTimeout(() => {
+            const phoneInput = document.getElementById('whatsapp_purchase_phone');
+            if (phoneInput) {
+                // Remove any existing mask
+                if (phoneInput.inputmask) {
+                    phoneInput.inputmask.remove();
+                }
+                // Set phone number if available, otherwise clear
+                if (phoneNumber) {
+                    phoneInput.value = phoneNumber;
+                } else {
+                    phoneInput.value = '';
+                }
+                phoneInput.focus();
+            }
+        }, 100);
+    }
+});
+
+// Handle WhatsApp share button in modal for purchases using event delegation
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#whatsappPurchaseShareBtn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const phoneInput = document.getElementById('whatsapp_purchase_phone');
+        if (!phoneInput) {
+            alert('<?php echo t('please_enter_phone_number'); ?>');
+            return;
+        }
+        
+        // Get phone number (remove any non-digit characters except +)
+        let phoneNumber = phoneInput.value.trim().replace(/[^0-9+]/g, '');
+        
+        const purchaseId = document.getElementById('whatsapp_purchase_id').value;
+        
+        if (!phoneNumber || phoneNumber.length < 10) {
+            alert('<?php echo t('please_enter_phone_number'); ?>');
+            return;
+        }
+        
+        // Format phone number: ensure it starts with +92
+        let cleanPhone = phoneNumber;
+        if (cleanPhone.startsWith('0')) {
+            // Local format: 03001234567 -> +923001234567
+            cleanPhone = '+92' + cleanPhone.substring(1);
+        } else if (cleanPhone.startsWith('92') && !cleanPhone.startsWith('+92')) {
+            // 92XXXXXXXXXX -> +92XXXXXXXXXX
+            cleanPhone = '+' + cleanPhone;
+        } else if (!cleanPhone.startsWith('+')) {
+            // If no country code, assume Pakistan
+            cleanPhone = '+92' + cleanPhone;
+        }
+        
+        // Validate phone number (should be 13 characters: +92XXXXXXXXXX)
+        if (cleanPhone.length < 13 || !cleanPhone.startsWith('+92')) {
+            alert('<?php echo t('invalid_phone_number'); ?>');
+            return;
+        }
+        
+        // Disable button during fetch
+        const btn = e.target.closest('#whatsappPurchaseShareBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('sending'); ?>...';
+        
+        // Fetch invoice details
+        fetch('<?php echo BASE_URL; ?>purchases/whatsapp-details-ajax.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'id=' + encodeURIComponent(purchaseId)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Open WhatsApp with message (remove + from phone number for wa.me)
+                const whatsappUrl = 'https://wa.me/' + cleanPhone.substring(1) + '?text=' + encodeURIComponent(data.message);
+                window.open(whatsappUrl, '_blank');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('whatsappPurchaseShareModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                // Reset button
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            } else {
+                alert(data.message || '<?php echo t('error_fetching_invoice'); ?>');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('<?php echo t('error_fetching_invoice'); ?>');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+});
 </script>
+
+<!-- WhatsApp Share Modal for Purchases -->
+<div class="modal fade" id="whatsappPurchaseShareModal" tabindex="-1" aria-labelledby="whatsappPurchaseShareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="whatsappPurchaseShareModalLabel">
+                    <i class="fab fa-whatsapp text-success"></i> <?php echo t('share_via_whatsapp'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><?php echo t('invoice'); ?>: <strong id="whatsapp_purchase_no"></strong></p>
+                <div class="mb-3">
+                    <label for="whatsapp_purchase_phone" class="form-label"><?php echo t('phone_number'); ?> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="whatsapp_purchase_phone" placeholder="<?php echo t('enter_phone_number'); ?>" required>
+                    <small class="form-text text-muted"><?php echo t('format'); ?>: +92-300-0000000</small>
+                </div>
+                <input type="hidden" id="whatsapp_purchase_id" value="">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-success" id="whatsappPurchaseShareBtn">
+                    <i class="fab fa-whatsapp"></i> <?php echo t('send'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php include '../includes/footer.php'; ?>
 

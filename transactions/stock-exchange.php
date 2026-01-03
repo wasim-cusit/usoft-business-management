@@ -36,10 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             $db->beginTransaction();
             
-            // Generate transaction number
+            // Generate transaction number (Se01, Se02, etc.)
             $stmt = $db->query("SELECT MAX(id) as max_id FROM transactions");
             $maxId = $stmt->fetch()['max_id'] ?? 0;
-            $transactionNo = generateCode('SE', $maxId);
+            $nextNumber = $maxId + 1;
+            $transactionNo = 'Se' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
             
             $totalAmount = 0;
             
@@ -192,10 +193,10 @@ include '../includes/header.php';
                                 <div class="col-md-2">
                                     <label class="form-label"><?php echo t('rate'); ?></label>
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     <label class="form-label"><?php echo t('weight'); ?></label>
                                 </div>
-                                <div class="col-md-1">
+                                <div class="col-md-2">
                                     <label class="form-label"><?php echo t('amount'); ?></label>
                                 </div>
                             </div>
@@ -220,11 +221,11 @@ include '../includes/header.php';
                                     <div class="col-md-2">
                                         <input type="number" step="0.01" class="form-control from-rate" name="from_rate[]" placeholder="0" required>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-1">
                                         <input type="number" step="0.01" class="form-control from-weight" name="from_weight[]" placeholder="0">
                                     </div>
-                                    <div class="col-md-1">
-                                        <input type="text" class="form-control from-amount" name="from_amount[]" readonly placeholder="0">
+                                    <div class="col-md-2">
+                                        <input type="text" class="form-control from-amount" name="from_amount[]" readonly placeholder="0" style="font-weight: bold; text-align: right; font-size: 14px;">
                                     </div>
                                 </div>
                             </div>
@@ -265,7 +266,7 @@ include '../includes/header.php';
                                             <td><input type="text" class="form-control form-control-sm" name="exchange_items[0][packing]" placeholder="<?php echo t('packing'); ?>"></td>
                                             <td><input type="number" step="0.01" class="form-control form-control-sm rate" name="exchange_items[0][rate]" placeholder="0" required></td>
                                             <td><input type="number" step="0.01" class="form-control form-control-sm weight" name="exchange_items[0][weight]" placeholder="0"></td>
-                                            <td><input type="text" class="form-control form-control-sm amount" name="exchange_items[0][amount]" readonly placeholder="0"></td>
+                                            <td><input type="text" class="form-control form-control-sm amount" name="exchange_items[0][amount]" readonly placeholder="0" style="font-weight: bold; text-align: right; font-size: 14px;"></td>
                                             <td><button type="button" class="btn btn-danger btn-sm remove-row"><i class="fas fa-times"></i></button></td>
                                         </tr>
                                     </tbody>
@@ -330,7 +331,17 @@ document.addEventListener('DOMContentLoaded', function() {
         function calculateAmount() {
             const qty = parseFloat(quantity.value) || 0;
             const rt = parseFloat(rate.value) || 0;
-            amount.value = (qty * rt).toFixed(2);
+            const calculatedAmount = qty * rt;
+            // Format number - remove .00 for whole numbers
+            if (typeof formatNumber === 'function') {
+                amount.value = formatNumber(calculatedAmount);
+            } else {
+                if (calculatedAmount % 1 === 0) {
+                    amount.value = calculatedAmount.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                } else {
+                    amount.value = calculatedAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+            }
         }
         
         quantity.addEventListener('input', calculateAmount);
@@ -361,7 +372,17 @@ document.addEventListener('DOMContentLoaded', function() {
         function calculateAmount() {
             const qty = parseFloat(quantity.value) || 0;
             const rt = parseFloat(rate.value) || 0;
-            amount.value = (qty * rt).toFixed(2);
+            const calculatedAmount = qty * rt;
+            // Format number - remove .00 for whole numbers
+            if (typeof formatNumber === 'function') {
+                amount.value = formatNumber(calculatedAmount);
+            } else {
+                if (calculatedAmount % 1 === 0) {
+                    amount.value = calculatedAmount.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                } else {
+                    amount.value = calculatedAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+            }
         }
         
         quantity.addEventListener('input', calculateAmount);
@@ -378,7 +399,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Add RTL support for amount fields
+if (document.documentElement.dir === 'rtl') {
+    document.querySelectorAll('.from-amount, .amount').forEach(function(input) {
+        input.style.textAlign = 'left';
+    });
+}
 </script>
+
+<style>
+.from-amount, .amount {
+    font-weight: bold !important;
+    font-size: 14px !important;
+}
+[dir="rtl"] .from-amount, [dir="rtl"] .amount {
+    text-align: left !important;
+}
+
+/* Remove padding/margin from from-item-row columns and increase input width */
+.from-item-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.from-item-row > div[class*="col-"] {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.from-item-row .form-control,
+.from-item-row .form-select {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Make all columns in from-item-row equal width so inputs have same width */
+.from-item-row > div[class*="col-"] {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: auto !important;
+}
+
+/* Remove padding/margin from To Account items table and increase input width */
+#toItemsTable td {
+    padding: 2px !important;
+    vertical-align: middle !important;
+}
+
+#toItemsTable th {
+    padding: 8px 2px !important;
+}
+
+#toItemsTable .form-control,
+#toItemsTable .form-select {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+#toItemsTable .amount {
+    font-weight: bold !important;
+    text-align: right !important;
+    font-size: 14px !important;
+}
+
+[dir="rtl"] #toItemsTable .amount {
+    text-align: left !important;
+}
+</style>
 
 <?php include '../includes/footer.php'; ?>
 

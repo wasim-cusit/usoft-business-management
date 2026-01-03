@@ -85,14 +85,14 @@ include '../includes/header.php';
                                     $statusText = $currentStock <= $minStock ? t('low_stock_status') : t('normal_status');
                                     ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($item['item_code']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['item_code'] ?? ''); ?></td>
                                         <td><?php echo displayItemNameFull($item); ?></td>
-                                        <td><?php echo htmlspecialchars($item['unit']); ?></td>
-                                        <td><?php echo number_format($item['opening_stock'], 2); ?></td>
-                                        <td><?php echo number_format($item['total_purchased'], 2); ?></td>
-                                        <td><?php echo number_format($item['total_sold'], 2); ?></td>
-                                        <td><strong><?php echo number_format($currentStock, 2); ?></strong></td>
-                                        <td><?php echo number_format($minStock, 2); ?></td>
+                                        <td><?php echo htmlspecialchars($item['unit'] ?? ''); ?></td>
+                                        <td><?php echo formatNumber($item['opening_stock']); ?></td>
+                                        <td><?php echo formatNumber($item['total_purchased']); ?></td>
+                                        <td><?php echo formatNumber($item['total_sold']); ?></td>
+                                        <td><strong><?php echo formatNumber($currentStock); ?></strong></td>
+                                        <td><?php echo formatNumber($minStock); ?></td>
                                         <td>
                                             <span class="badge <?php echo $statusClass; ?>">
                                                 <?php echo $statusText; ?>

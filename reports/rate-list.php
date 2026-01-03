@@ -57,7 +57,7 @@ include '../includes/header.php';
                                             $stock = floatval($item['current_stock'] ?? 0);
                                             $minStock = floatval($item['min_stock'] ?? 0);
                                             $class = ($stock <= $minStock) ? 'text-danger' : '';
-                                            echo '<span class="' . $class . '">' . number_format($stock, 2) . '</span>';
+                                            echo '<span class="' . $class . '">' . formatNumber($stock) . '</span>';
                                             ?>
                                         </td>
                                         <td>

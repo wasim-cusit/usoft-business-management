@@ -13,8 +13,7 @@ if (empty($id)) {
 
 try {
     $db = getDB();
-    $stmt = $db->prepare("SELECT a.*, ut.type_name_urdu as user_type_name FROM accounts a 
-                         LEFT JOIN user_types ut ON a.user_type_id = ut.id 
+    $stmt = $db->prepare("SELECT a.* FROM accounts a 
                          WHERE a.id = ?");
     $stmt->execute([$id]);
     $account = $stmt->fetch();
@@ -24,7 +23,18 @@ try {
         exit;
     }
     
-    // Get account balance
+    // Get account balance - includes opening balance, purchases, sales, and transactions
+    // Get purchases (debit - increases balance)
+    $stmt = $db->prepare("SELECT COALESCE(SUM(balance_amount), 0) as total FROM purchases WHERE account_id = ?");
+    $stmt->execute([$id]);
+    $purchaseBalance = $stmt->fetch()['total'] ?? 0;
+    
+    // Get sales (credit - decreases balance)
+    $stmt = $db->prepare("SELECT COALESCE(SUM(balance_amount), 0) as total FROM sales WHERE account_id = ?");
+    $stmt->execute([$id]);
+    $saleBalance = $stmt->fetch()['total'] ?? 0;
+    
+    // Get transactions
     $stmt = $db->prepare("SELECT 
         COALESCE(SUM(CASE WHEN transaction_type = 'debit' THEN amount ELSE 0 END), 0) as total_debit,
         COALESCE(SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE 0 END), 0) as total_credit
@@ -32,11 +42,15 @@ try {
     $stmt->execute([$id]);
     $trans = $stmt->fetch();
     
+    // Calculate balance: Opening Balance + Purchases + Debit Transactions - Sales - Credit Transactions
     $balance = $account['opening_balance'];
     if ($account['balance_type'] == 'credit') {
-        $balance = -$balance;
+        $balance = -$balance; // Credit opening balance is negative (they owe us)
     }
-    $balance += $trans['total_debit'] - $trans['total_credit'];
+    $balance += $purchaseBalance; // Purchases increase balance (they owe us more)
+    $balance += $trans['total_debit']; // Debit transactions increase balance
+    $balance -= $saleBalance; // Sales decrease balance (we owe them)
+    $balance -= $trans['total_credit']; // Credit transactions decrease balance
     
 } catch (PDOException $e) {
     header('Location: ' . BASE_URL . 'accounts/list.php');
@@ -72,10 +86,12 @@ include '../includes/header.php';
                         <th style="width: 40%;"><?php echo t('account_code'); ?></th>
                         <td><?php echo htmlspecialchars($account['account_code']); ?></td>
                     </tr>
+                    <!--
                     <tr>
                         <th><?php echo t('account_name_required'); ?></th>
                         <td><?php echo displayAccountName($account); ?></td>
                     </tr>
+                    -->
                     <tr>
                         <th><?php echo t('account_name_required'); ?> (<?php echo getLang() == 'ur' ? t('english') : t('urdu'); ?>)</th>
                         <td><?php echo getLang() == 'ur' ? htmlspecialchars($account['account_name'] ?? '-') : htmlspecialchars($account['account_name_urdu'] ?? '-'); ?></td>
@@ -90,10 +106,6 @@ include '../includes/header.php';
                         </td>
                     </tr>
                     <tr>
-                        <th><?php echo t('user_types'); ?></th>
-                        <td><?php echo htmlspecialchars($account['user_type_name'] ?? '-'); ?></td>
-                    </tr>
-                    <tr>
                         <th><?php echo t('contact_person'); ?></th>
                         <td><?php echo htmlspecialchars($account['contact_person'] ?? '-'); ?></td>
                     </tr>
@@ -105,14 +117,18 @@ include '../includes/header.php';
                         <th><?php echo t('mobile'); ?></th>
                         <td><?php echo htmlspecialchars($account['mobile'] ?? '-'); ?></td>
                     </tr>
+                    <!--
                     <tr>
                         <th><?php echo t('email'); ?></th>
                         <td><?php echo htmlspecialchars($account['email'] ?? '-'); ?></td>
                     </tr>
+                    -->
+                    <!--
                     <tr>
                         <th><?php echo t('address'); ?></th>
                         <td><?php echo htmlspecialchars($account['address'] ?? '-'); ?></td>
                     </tr>
+                    -->
                     <tr>
                         <th><?php echo t('city'); ?></th>
                         <td><?php echo htmlspecialchars($account['city'] ?? '-'); ?></td>

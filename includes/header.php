@@ -53,59 +53,54 @@
             gap: 10px;
         }
         .sidebar {
-            background: linear-gradient(180deg, #ffffff 0%, #f8f9ff 100%);
+            background: #ffffff;
             min-height: calc(100vh - 70px);
-            box-shadow: 3px 0 15px rgba(0,0,0,0.08);
+            border-right: 1px solid #e5e7eb;
             overflow-y: auto;
             overflow-x: hidden;
             padding: 0;
         }
         [dir="rtl"] .sidebar {
-            border-left: 1px solid #e0e0e0;
-            box-shadow: 3px 0 15px rgba(0,0,0,0.08);
-        }
-        [dir="ltr"] .sidebar {
-            border-right: 1px solid #e0e0e0;
-            box-shadow: -3px 0 15px rgba(0,0,0,0.08);
+            border-right: none;
+            border-left: 1px solid #e5e7eb;
         }
         .sidebar::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         .sidebar::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: transparent;
         }
         .sidebar::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 3px;
+            background: #d1d5db;
+            border-radius: 2px;
         }
         .sidebar::-webkit-scrollbar-thumb:hover {
-            background: #764ba2;
+            background: #9ca3af;
         }
         .sidebar .position-sticky {
-            padding: 15px 0;
+            padding: 24px 0;
         }
         .sidebar .nav {
-            padding: 0;
+            padding: 0 12px;
             margin: 0;
         }
         .sidebar .nav-item {
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
         .sidebar .nav-link {
-            color: #495057;
-            padding: 12px 20px;
-            border-right: 4px solid transparent;
-            border-left: 4px solid transparent;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #000000;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: none !important;
             font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-weight: 500;
-            border-radius: 0;
             position: relative;
             text-decoration: none;
             margin: 0;
+            border: none;
         }
         .sidebar .nav-link > span {
             display: flex;
@@ -117,16 +112,17 @@
         .sidebar .nav-link > span > i:first-child {
             width: 20px;
             text-align: center;
-            font-size: 16px;
+            font-size: 18px;
             flex-shrink: 0;
+            color: #000000;
+            transition: none !important;
         }
         .sidebar .nav-link .fa-chevron-right,
         .sidebar .nav-link .fa-chevron-left {
-            font-size: 11px;
-            transition: transform 0.3s ease;
-            opacity: 0.7;
+            font-size: 12px;
+            transition: none !important;
+            color: #000000;
             flex-shrink: 0;
-            margin-left: auto;
         }
         [dir="rtl"] .sidebar .nav-link .fa-chevron-right,
         [dir="rtl"] .sidebar .nav-link .fa-chevron-left {
@@ -139,80 +135,83 @@
         .sidebar .nav-link[aria-expanded="true"] .fa-chevron-left {
             transform: rotate(-90deg);
         }
-        [dir="rtl"] .sidebar .nav-link {
-            border-right: 4px solid transparent;
-            border-left: none;
+        .sidebar * {
+            transition: none !important;
+            animation: none !important;
         }
-        [dir="ltr"] .sidebar .nav-link {
-            border-left: 4px solid transparent;
-            border-right: none;
+        .sidebar .nav-link,
+        .sidebar .nav-link > span,
+        .sidebar .nav-link > span > i,
+        .sidebar .nav-link .fa-chevron-right,
+        .sidebar .nav-link .fa-chevron-left {
+            transition: none !important;
+            animation: none !important;
         }
         .sidebar .nav-link:hover {
-            background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
-            color: #667eea;
+            background: #f3f4f6;
+            color: #000000;
+        }
+        .sidebar .nav-link:hover > span > i:first-child {
+            color: #000000;
         }
         .sidebar .nav-link.active {
-            background: linear-gradient(90deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-            color: #667eea;
+            background: #f3f4f6;
+            color: #000000;
             font-weight: 600;
         }
         .sidebar .nav-link.active > span > i:first-child {
-            color: #667eea;
+            color: #000000;
         }
-        [dir="rtl"] .sidebar .nav-link:hover,
-        [dir="rtl"] .sidebar .nav-link.active {
-            border-right-color: #667eea;
-            padding-right: 18px;
+        .sidebar .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: #000000;
+            border-radius: 0 2px 2px 0;
         }
-        [dir="ltr"] .sidebar .nav-link:hover,
-        [dir="ltr"] .sidebar .nav-link.active {
-            border-left-color: #667eea;
-            padding-left: 18px;
+        [dir="rtl"] .sidebar .nav-link.active::before {
+            left: auto;
+            right: 0;
+            border-radius: 2px 0 0 2px;
         }
         .sidebar .nav .nav {
-            background: rgba(102, 126, 234, 0.03);
-            margin-top: 2px;
-            margin-bottom: 2px;
+            background: transparent;
+            margin-top: 4px;
+            margin-bottom: 4px;
             border-radius: 0;
-            padding: 4px 0;
+            padding: 0;
+            margin-left: 32px;
         }
         [dir="rtl"] .sidebar .nav .nav {
-            padding-right: 0;
-            padding-left: 0;
-        }
-        [dir="ltr"] .sidebar .nav .nav {
-            padding-left: 0;
-            padding-right: 0;
+            margin-left: 0;
+            margin-right: 32px;
         }
         .sidebar .nav .nav .nav-link {
-            padding: 10px 20px 10px 45px;
+            padding: 8px 16px;
             font-size: 13px;
             font-weight: 400;
-            color: #6c757d;
-            border: none;
+            color: #000000;
+            border-radius: 6px;
+            margin-left: 0;
         }
         [dir="rtl"] .sidebar .nav .nav .nav-link {
-            padding: 10px 45px 10px 20px;
+            margin-right: 0;
         }
         .sidebar .nav .nav .nav-link:hover {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            padding-left: 48px;
-        }
-        [dir="rtl"] .sidebar .nav .nav .nav-link:hover {
-            padding-left: 20px;
-            padding-right: 48px;
+            background: #f3f4f6;
+            color: #000000;
         }
         .sidebar .nav .nav .nav-link.active {
-            background: rgba(102, 126, 234, 0.18);
-            color: #667eea;
+            background: #f3f4f6;
+            color: #000000;
             font-weight: 600;
-            padding-left: 48px;
-            position: relative;
         }
-        [dir="rtl"] .sidebar .nav .nav .nav-link.active {
-            padding-left: 20px;
-            padding-right: 48px;
+        .sidebar .nav .nav .nav-link.active::before {
+            display: none;
         }
         <?php /*
         .sidebar .nav .nav .nav-link.active::before {
@@ -232,23 +231,11 @@
         }
         */ ?>
         .collapse {
-            transition: height 0.35s ease;
+            transition: none !important;
         }
         .collapse.show {
             display: block;
-            animation: slideDown 0.35s ease;
-        }
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                max-height: 0;
-                transform: translateY(-5px);
-            }
-            to {
-                opacity: 1;
-                max-height: 500px;
-                transform: translateY(0);
-            }
+            animation: none !important;
         }
         .card {
             border: none;
@@ -470,7 +457,12 @@
             border: 1px solid rgba(102, 126, 234, 0.1);
             position: relative;
             overflow: hidden;
-            min-height: 120px;
+            min-height: 176px;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
         }
         .stat-card .d-flex {
             padding: 0;
@@ -540,6 +532,18 @@
         }
         .stat-card:hover .icon {
             transform: scale(1.1) rotate(5deg);
+        }
+        
+        /* Ensure equal-sized stat cards */
+        .row.mb-4 > .col-md-3.mb-3 {
+            display: flex;
+        }
+        .row.mb-4 > .col-md-3.mb-3 > .stat-card {
+            flex: 1;
+            min-height: 176px;
+        }
+        .stat-card > .btn {
+            margin-top: auto;
         }
         
         /* Mobile Responsive Styles */
@@ -705,22 +709,21 @@
             margin-left: 0;
         }
         
-        /* Global Notification System - Fixed Position */
+        /* Global Notification System - Fixed Position Top Left */
         #pageNotification {
             position: fixed;
             top: 80px;
+            left: 20px;
             z-index: 9999;
-            max-width: 400px;
+            max-width: 420px;
             animation: slideInNotification 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
-        /* English (LTR) - Top Right */
-        [dir="ltr"] #pageNotification {
-            right: 20px;
-            left: auto;
-        }
-        /* Urdu (RTL) - Top Left */
+        /* RTL Support - Keep on left */
         [dir="rtl"] #pageNotification {
+            left: 20px;
+            right: auto;
+        }
+        [dir="ltr"] #pageNotification {
             left: 20px;
             right: auto;
         }
@@ -729,19 +732,109 @@
             border-radius: 12px;
             padding: 16px 20px;
             font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        #pageNotification .alert::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 12px 0 0 12px;
+        }
+        [dir="rtl"] #pageNotification .alert::before {
+            left: auto;
+            right: 0;
+            border-radius: 0 12px 12px 0;
+        }
+        #pageNotification .alert-success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        [dir="rtl"] #pageNotification .alert-success {
+            border-left: none;
+            border-right: 4px solid #10b981;
+        }
+        #pageNotification .alert-success::before {
+            background: #10b981;
+        }
+        #pageNotification .alert-success i {
+            color: #10b981;
+        }
+        #pageNotification .alert-danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        [dir="rtl"] #pageNotification .alert-danger {
+            border-left: none;
+            border-right: 4px solid #ef4444;
+        }
+        #pageNotification .alert-danger::before {
+            background: #ef4444;
+        }
+        #pageNotification .alert-danger i {
+            color: #ef4444;
+        }
+        #pageNotification .alert-warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        [dir="rtl"] #pageNotification .alert-warning {
+            border-left: none;
+            border-right: 4px solid #f59e0b;
+        }
+        #pageNotification .alert-warning::before {
+            background: #f59e0b;
+        }
+        #pageNotification .alert-warning i {
+            color: #f59e0b;
+        }
+        #pageNotification .alert-info {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        [dir="rtl"] #pageNotification .alert-info {
+            border-left: none;
+            border-right: 4px solid #3b82f6;
+        }
+        #pageNotification .alert-info::before {
+            background: #3b82f6;
+        }
+        #pageNotification .alert-info i {
+            color: #3b82f6;
         }
         #pageNotification .alert i {
-            font-size: 20px;
+            font-size: 22px;
             flex-shrink: 0;
+            width: 24px;
+            text-align: center;
+        }
+        #pageNotification .alert span {
+            flex: 1;
+            line-height: 1.5;
         }
         #pageNotification .alert .btn-close {
             margin-left: auto;
             margin-right: 0;
             padding: 0.5rem;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+            background-size: 12px;
+        }
+        #pageNotification .alert .btn-close:hover {
+            opacity: 1;
         }
         [dir="rtl"] #pageNotification .alert .btn-close {
             margin-left: 0;
@@ -750,11 +843,11 @@
         @keyframes slideInNotification {
             from {
                 opacity: 0;
-                transform: translateX(<?php echo getDir() == 'rtl' ? '-100px' : '100px'; ?>);
+                transform: translateX(-100px) scale(0.9);
             }
             to {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateX(0) scale(1);
             }
         }
         /* Mobile Responsive for Notifications */
@@ -762,14 +855,15 @@
             #pageNotification {
                 max-width: calc(100% - 40px);
                 top: 70px;
-            }
-            [dir="ltr"] #pageNotification {
-                right: 20px;
-                left: 20px;
-            }
-            [dir="rtl"] #pageNotification {
                 left: 20px;
                 right: 20px;
+            }
+            #pageNotification .alert {
+                padding: 14px 18px;
+                font-size: 13px;
+            }
+            #pageNotification .alert i {
+                font-size: 20px;
             }
         }
         
@@ -935,6 +1029,98 @@
             margin-left: 0;
             margin-right: 4px;
         }
+        
+        /* RTL Modal Fixes */
+        [dir="rtl"] .modal-header {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .modal-header .btn-close {
+            margin-left: 0;
+            margin-right: auto;
+        }
+        [dir="ltr"] .modal-header .btn-close {
+            margin-left: auto;
+            margin-right: 0;
+        }
+        [dir="rtl"] .modal-footer {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .modal-footer .btn {
+            margin-left: 0.5rem;
+            margin-right: 0;
+        }
+        [dir="rtl"] .modal-footer .btn:first-child {
+            margin-left: 0;
+        }
+        [dir="ltr"] .modal-footer .btn {
+            margin-right: 0.5rem;
+            margin-left: 0;
+        }
+        [dir="ltr"] .modal-footer .btn:first-child {
+            margin-right: 0;
+        }
+        [dir="rtl"] .modal-title {
+            margin-right: 0;
+            margin-left: auto;
+        }
+        [dir="ltr"] .modal-title {
+            margin-left: 0;
+            margin-right: auto;
+        }
+        /* RTL Form Alignment in Modals */
+        [dir="rtl"] .modal-body .form-label {
+            text-align: right;
+        }
+        [dir="ltr"] .modal-body .form-label {
+            text-align: left;
+        }
+        [dir="rtl"] .modal-body .form-control,
+        [dir="rtl"] .modal-body .form-select {
+            text-align: right;
+        }
+        [dir="ltr"] .modal-body .form-control,
+        [dir="ltr"] .modal-body .form-select {
+            text-align: left;
+        }
+        /* RTL Table Alignment in Modals */
+        [dir="rtl"] .modal-body .table {
+            text-align: right;
+        }
+        [dir="ltr"] .modal-body .table {
+            text-align: left;
+        }
+        [dir="rtl"] .modal-body .text-end {
+            text-align: left !important;
+        }
+        [dir="ltr"] .modal-body .text-end {
+            text-align: right !important;
+        }
+        [dir="rtl"] .modal-body .text-start {
+            text-align: right !important;
+        }
+        [dir="ltr"] .modal-body .text-start {
+            text-align: left !important;
+        }
+        /* RTL Card Header Alignment */
+        [dir="rtl"] .card-header {
+            text-align: right;
+        }
+        [dir="ltr"] .card-header {
+            text-align: left;
+        }
+        [dir="rtl"] .card-header .row {
+            flex-direction: row-reverse;
+        }
+        /* RTL Modal Header and Card Header justify-content-between */
+        [dir="rtl"] .modal-header.d-flex.justify-content-between,
+        [dir="rtl"] .card-header .d-flex.justify-content-between,
+        [dir="rtl"] .page-header .d-flex.justify-content-between {
+            flex-direction: row-reverse;
+        }
+        /* RTL Button Groups */
+        [dir="rtl"] .btn-group {
+            flex-direction: row-reverse;
+        }
     </style>
 </head>
 <body>
@@ -1031,49 +1217,21 @@
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($accountsOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#accountsMenu" aria-expanded="<?php echo $accountsOpen ? 'true' : 'false'; ?>">
+                            <a class="nav-link <?php echo ($currentPage == 'list.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/list.php">
                                 <span><i class="fas fa-users"></i> <?php echo t('accounts'); ?></span>
-                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse <?php echo $accountsOpen ? 'show' : ''; ?>" id="accountsMenu">
-                                <ul class="nav flex-column">
-                                    <?php /*
-                                    <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/create.php"><?php echo t('new_account'); ?></a></li>
-                                    */ ?>
-                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/list.php"><?php echo t('customer_list'); ?></a></li>
-                                    <li><a class="nav-link <?php echo ($currentPage == 'user-types.php' && $isAccounts) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>accounts/user-types.php"><?php echo t('add_user_type'); ?></a></li>
-                                </ul>
-                            </div>
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($itemsOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#itemsMenu" aria-expanded="<?php echo $itemsOpen ? 'true' : 'false'; ?>">
+                            <a class="nav-link <?php echo ($currentPage == 'list.php' && $isItems) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>items/list.php">
                                 <span><i class="fas fa-box"></i> <?php echo t('items'); ?></span>
-                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse <?php echo $itemsOpen ? 'show' : ''; ?>" id="itemsMenu">
-                                <ul class="nav flex-column">
-                                    <?php /* Commented out - now using modal popup
-                                    <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isItems) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>items/create.php"><?php echo t('create_item'); ?></a></li>
-                                    */ ?>
-                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isItems) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>items/list.php"><?php echo t('all_items'); ?></a></li>
-                                </ul>
-                            </div>
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($purchasesOpen && !$isChildPage) ? 'active' : ''; ?>" data-bs-toggle="collapse" href="#purchaseMenu" aria-expanded="<?php echo $purchasesOpen ? 'true' : 'false'; ?>">
+                            <a class="nav-link <?php echo ($currentPage == 'list.php' && $isPurchases) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>purchases/list.php">
                                 <span><i class="fas fa-shopping-cart"></i> <?php echo t('purchases'); ?></span>
-                                <i class="fas fa-chevron-<?php echo getDir() == 'rtl' ? 'left' : 'right'; ?>"></i>
                             </a>
-                            <div class="collapse <?php echo $purchasesOpen ? 'show' : ''; ?>" id="purchaseMenu">
-                                <ul class="nav flex-column">
-                                    <?php /* Commented out - now using modal popup
-                                    <li><a class="nav-link <?php echo ($currentPage == 'create.php' && $isPurchases) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>purchases/create.php"><?php echo t('add_purchase'); ?></a></li>
-                                    */ ?>
-                                    <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isPurchases) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>purchases/list.php"><?php echo t('all_purchases'); ?></a></li>
-                                </ul>
-                            </div>
                         </li>
                         
                         <li class="nav-item">
@@ -1096,9 +1254,11 @@
                             </a>
                             <div class="collapse <?php echo $transactionsOpen ? 'show' : ''; ?>" id="paymentMenu">
                                 <ul class="nav flex-column">
-                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'debit.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/debit.php"><?php echo t('debit'); ?></a></li> -->
-                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'credit.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/credit.php"><?php echo t('credit'); ?></a></li> -->
-                                    <!-- <li><a class="nav-link <?php echo ($currentPage == 'journal.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/journal.php"><?php echo t('journal'); ?></a></li> -->
+                                    <li><a class="nav-link <?php echo ($currentPage == 'debit.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/debit.php"><?php echo t('debit'); ?></a></li>
+                                    <li><a class="nav-link <?php echo ($currentPage == 'credit.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/credit.php"><?php echo t('credit'); ?></a></li>
+                                    <?php /* Commented out Journal/Cash JV link - user requested
+                                    <li><a class="nav-link <?php echo ($currentPage == 'journal.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/journal.php"><?php echo t('journal'); ?></a></li>
+                                    */ ?>
                                     <li><a class="nav-link <?php echo ($currentPage == 'list.php' && $isTransactions) ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/list.php"><?php echo t('all_transactions'); ?></a></li>
                                     <li><a class="nav-link <?php echo ($currentPage == 'stock-exchange.php') ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>transactions/stock-exchange.php"><?php echo t('stock_exchange'); ?></a></li>
                                 </ul>

@@ -43,15 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
-<?php
-require_once 'config/config.php';
-// Get language from session or default
-if (!isset($_SESSION['language'])) {
-    $_SESSION['language'] = 'ur';
-}
-$lang = $_SESSION['language'] ?? 'ur';
-require_once 'config/language.php';
-?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang() == 'ur' ? 'ur' : 'en'; ?>" dir="<?php echo getDir(); ?>">
 <head>
@@ -139,15 +130,53 @@ require_once 'config/language.php';
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
-        .input-group-text {
+        /* LTR (English) Input Group Styles */
+        [dir="ltr"] .input-group-text {
             background: #f8f9fa;
             border: 2px solid #e0e0e0;
             border-left: none;
             border-radius: 0 10px 10px 0;
         }
-        .input-group .form-control {
+        [dir="ltr"] .input-group .form-control {
             border-right: none;
             border-radius: 10px 0 0 10px;
+        }
+        
+        /* RTL (Urdu) Input Group Styles */
+        [dir="rtl"] .input-group {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .input-group-text {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-right: none;
+            border-left: 2px solid #e0e0e0;
+            border-radius: 10px 0 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+        }
+        [dir="rtl"] .input-group .form-control {
+            border-left: none;
+            border-right: 2px solid #e0e0e0;
+            border-radius: 0 10px 10px 0;
+        }
+        [dir="rtl"] .input-group .form-control:focus {
+            border-right-color: #667eea;
+        }
+        
+        /* Default fallback for input-group */
+        .input-group-text {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+        }
+        
+        /* LTR Input Group - ensure proper order */
+        [dir="ltr"] .input-group {
+            flex-direction: row;
         }
         .alert {
             border-radius: 10px;

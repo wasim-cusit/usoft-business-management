@@ -20,6 +20,10 @@ try {
         FROM sales WHERE sale_date BETWEEN ? AND ?");
     $stmt->execute([$dateFrom, $dateTo]);
     $salesStats = $stmt->fetch();
+    // Ensure numeric values - extract only numeric part
+    $salesStats['total_sales'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($salesStats['total_sales'] ?? 0)));
+    $salesStats['credit_sales'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($salesStats['credit_sales'] ?? 0)));
+    $salesStats['debit_amount'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($salesStats['debit_amount'] ?? 0)));
     
     // Purchases Statistics
     $stmt = $db->prepare("SELECT 
@@ -29,6 +33,10 @@ try {
         FROM purchases WHERE purchase_date BETWEEN ? AND ?");
     $stmt->execute([$dateFrom, $dateTo]);
     $purchaseStats = $stmt->fetch();
+    // Ensure numeric values - extract only numeric part
+    $purchaseStats['total_purchases'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchaseStats['total_purchases'] ?? 0)));
+    $purchaseStats['credit_purchases'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchaseStats['credit_purchases'] ?? 0)));
+    $purchaseStats['debit_purchases'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchaseStats['debit_purchases'] ?? 0)));
     
     // Total Accounts (all time, not filtered by date)
     $stmt = $db->query("SELECT COUNT(*) as total FROM accounts WHERE status = 'active'");
@@ -42,7 +50,7 @@ try {
     $stmt = $db->query("SELECT COUNT(*) as total FROM items WHERE current_stock <= min_stock AND status = 'active'");
     $lowStock = $stmt->fetch()['total'];
     
-    // Purchases Statistics (filtered by date range)
+    // Purchases Statistics (filtered by date range) - This overwrites the previous query
     $stmt = $db->prepare("SELECT 
         COALESCE(SUM(net_amount), 0) as total_purchases,
         COALESCE(SUM(paid_amount), 0) as credit_purchases,
@@ -50,6 +58,10 @@ try {
         FROM purchases WHERE purchase_date BETWEEN ? AND ?");
     $stmt->execute([$dateFrom, $dateTo]);
     $purchaseStats = $stmt->fetch();
+    // Ensure numeric values (re-cast after overwrite) - extract only numeric part
+    $purchaseStats['total_purchases'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchaseStats['total_purchases'] ?? 0)));
+    $purchaseStats['credit_purchases'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchaseStats['credit_purchases'] ?? 0)));
+    $purchaseStats['debit_purchases'] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchaseStats['debit_purchases'] ?? 0)));
     
     // Additional filtered statistics
     // Total Sales Count
@@ -65,6 +77,114 @@ try {
     // Profit Calculation
     $totalProfit = $salesStats['total_sales'] - $purchaseStats['total_purchases'];
     
+    // Get sales list for dashboard (default to current date if no filter)
+    $salesDateFrom = $_GET['sales_date_from'] ?? date('Y-m-d');
+    $salesDateTo = $_GET['sales_date_to'] ?? date('Y-m-d');
+    
+    $salesWhere = "WHERE s.sale_date BETWEEN ? AND ?";
+    $salesParams = [$salesDateFrom, $salesDateTo];
+    
+    // Get sales for dashboard
+    $stmt = $db->prepare("SELECT s.*, a.account_name, a.account_name_urdu, a.mobile, a.phone FROM sales s 
+                         LEFT JOIN accounts a ON s.account_id = a.id 
+                         $salesWhere ORDER BY s.id DESC LIMIT 50");
+    $stmt->execute($salesParams);
+    $dashboardSales = $stmt->fetchAll();
+    
+    // Calculate totals for dashboard sales
+    $stmt = $db->prepare("SELECT 
+                            COALESCE(SUM(s.total_amount), 0) as total_amount,
+                            COALESCE(SUM(s.discount), 0) as total_discount,
+                            COALESCE(SUM(s.net_amount), 0) as total_net_amount,
+                            COALESCE(SUM(s.paid_amount), 0) as total_paid_amount,
+                            COALESCE(SUM(s.balance_amount), 0) as total_balance_amount
+                         FROM sales s 
+                         LEFT JOIN accounts a ON s.account_id = a.id 
+                         $salesWhere");
+    $stmt->execute($salesParams);
+    $salesTotals = $stmt->fetch();
+    $dashboardTotalAmount = $salesTotals['total_amount'] ?? 0;
+    $dashboardTotalDiscount = $salesTotals['total_discount'] ?? 0;
+    $dashboardTotalNetAmount = $salesTotals['total_net_amount'] ?? 0;
+    $dashboardTotalPaidAmount = $salesTotals['total_paid_amount'] ?? 0;
+    $dashboardTotalBalanceAmount = $salesTotals['total_balance_amount'] ?? 0;
+    
+    // Get transactions list for dashboard (default to current date if no filter)
+    $transactionsDateFrom = $_GET['transactions_date_from'] ?? date('Y-m-d');
+    $transactionsDateTo = $_GET['transactions_date_to'] ?? date('Y-m-d');
+    
+    $transactionsWhere = "WHERE t.transaction_date BETWEEN ? AND ?";
+    $transactionsParams = [$transactionsDateFrom, $transactionsDateTo];
+    
+    // Get transactions for dashboard
+    $stmt = $db->prepare("SELECT t.*, a.account_name, a.account_name_urdu, t.reference_type FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $transactionsWhere ORDER BY t.id DESC LIMIT 50");
+    $stmt->execute($transactionsParams);
+    $dashboardTransactions = $stmt->fetchAll();
+    
+    // Calculate totals for dashboard transactions
+    // Cash Debit
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $transactionsWhere AND t.transaction_type = 'debit' 
+                         AND (t.reference_type IS NULL OR t.reference_type != 'journal')");
+    $stmt->execute($transactionsParams);
+    $cashDebitResult = $stmt->fetch();
+    $dashboardCashDebitTotal = $cashDebitResult['total'] ?? 0;
+    $dashboardCashDebitCount = $cashDebitResult['count'] ?? 0;
+    
+    // Cash Credit
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $transactionsWhere AND t.transaction_type = 'credit' 
+                         AND (t.reference_type IS NULL OR t.reference_type != 'journal')");
+    $stmt->execute($transactionsParams);
+    $cashCreditResult = $stmt->fetch();
+    $dashboardCashCreditTotal = $cashCreditResult['total'] ?? 0;
+    $dashboardCashCreditCount = $cashCreditResult['count'] ?? 0;
+    
+    // Journal
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total, COUNT(DISTINCT SUBSTRING_INDEX(t.transaction_no, '-', 1)) as count FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $transactionsWhere AND t.reference_type = 'journal'");
+    $stmt->execute($transactionsParams);
+    $journalResult = $stmt->fetch();
+    $dashboardJournalTotal = $journalResult['total'] ?? 0;
+    $dashboardJournalCount = $journalResult['count'] ?? 0;
+    
+    // Get purchases list for dashboard (default to current date if no filter)
+    $purchasesDateFrom = $_GET['purchases_date_from'] ?? date('Y-m-d');
+    $purchasesDateTo = $_GET['purchases_date_to'] ?? date('Y-m-d');
+    
+    $purchasesWhere = "WHERE p.purchase_date BETWEEN ? AND ?";
+    $purchasesParams = [$purchasesDateFrom, $purchasesDateTo];
+    
+    // Get purchases for dashboard
+    $stmt = $db->prepare("SELECT p.*, a.account_name, a.account_name_urdu, a.mobile, a.phone FROM purchases p 
+                         LEFT JOIN accounts a ON p.account_id = a.id 
+                         $purchasesWhere ORDER BY p.id DESC LIMIT 50");
+    $stmt->execute($purchasesParams);
+    $dashboardPurchases = $stmt->fetchAll();
+    
+    // Calculate totals for dashboard purchases
+    $stmt = $db->prepare("SELECT 
+                            COALESCE(SUM(p.total_amount), 0) as total_amount,
+                            COALESCE(SUM(p.discount), 0) as total_discount,
+                            COALESCE(SUM(p.net_amount), 0) as total_net_amount,
+                            COALESCE(SUM(p.paid_amount), 0) as total_paid_amount,
+                            COALESCE(SUM(p.balance_amount), 0) as total_balance_amount
+                         FROM purchases p 
+                         LEFT JOIN accounts a ON p.account_id = a.id 
+                         $purchasesWhere");
+    $stmt->execute($purchasesParams);
+    $purchasesTotals = $stmt->fetch();
+    $dashboardPurchaseTotalAmount = $purchasesTotals['total_amount'] ?? 0;
+    $dashboardPurchaseTotalDiscount = $purchasesTotals['total_discount'] ?? 0;
+    $dashboardPurchaseTotalNetAmount = $purchasesTotals['total_net_amount'] ?? 0;
+    $dashboardPurchaseTotalPaidAmount = $purchasesTotals['total_paid_amount'] ?? 0;
+    $dashboardPurchaseTotalBalanceAmount = $purchasesTotals['total_balance_amount'] ?? 0;
+    
     // Get daily sales data for last 7 days for chart
     $chartDateFrom = date('Y-m-d', strtotime('-6 days', strtotime($dateTo)));
     $stmt = $db->prepare("SELECT 
@@ -76,6 +196,11 @@ try {
         ORDER BY sale_date");
     $stmt->execute([$chartDateFrom, $dateTo]);
     $dailySales = $stmt->fetchAll();
+    // Ensure numeric values for chart data
+    foreach ($dailySales as &$sale) {
+        $sale['amount'] = floatval($sale['amount'] ?? 0);
+    }
+    unset($sale);
     
     // Get daily purchases data for last 7 days for chart
     $stmt = $db->prepare("SELECT 
@@ -87,6 +212,11 @@ try {
         ORDER BY purchase_date");
     $stmt->execute([$chartDateFrom, $dateTo]);
     $dailyPurchases = $stmt->fetchAll();
+    // Ensure numeric values for chart data
+    foreach ($dailyPurchases as &$purchase) {
+        $purchase['amount'] = floatval($purchase['amount'] ?? 0);
+    }
+    unset($purchase);
     
     // Get top 5 selling items
     $stmt = $db->prepare("SELECT 
@@ -140,7 +270,8 @@ try {
         $salesAmount = 0;
         foreach ($dailySales as $sale) {
             if ($sale['date'] == $dateStr) {
-                $salesAmount = floatval($sale['amount']);
+                // Clean numeric value - remove any non-numeric characters
+                $salesAmount = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($sale['amount'] ?? 0)));
                 break;
             }
         }
@@ -150,7 +281,8 @@ try {
         $purchaseAmount = 0;
         foreach ($dailyPurchases as $purchase) {
             if ($purchase['date'] == $dateStr) {
-                $purchaseAmount = floatval($purchase['amount']);
+                // Clean numeric value - remove any non-numeric characters
+                $purchaseAmount = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($purchase['amount'] ?? 0)));
                 break;
             }
         }
@@ -167,16 +299,18 @@ try {
     $topItemsLabels = [];
     $topItemsData = [];
     foreach ($topItems as $item) {
-        $topItemsLabels[] = displayItemNameFull(['item_name' => $item['item_name'], 'item_name_urdu' => $item['item_name_urdu']]);
-        $topItemsData[] = floatval($item['total_amount']);
+        $topItemsLabels[] = displayItemNameFull(['item_name' => $item['item_name'] ?? '', 'item_name_urdu' => $item['item_name_urdu'] ?? '']);
+        // Clean numeric value - remove any non-numeric characters
+        $topItemsData[] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($item['total_amount'] ?? 0)));
     }
     
     // Prepare top customers data
     $topCustomersLabels = [];
     $topCustomersData = [];
     foreach ($topCustomers as $customer) {
-        $topCustomersLabels[] = displayAccountNameFull(['account_name' => $customer['account_name'], 'account_name_urdu' => $customer['account_name_urdu']]);
-        $topCustomersData[] = floatval($customer['total_amount']);
+        $topCustomersLabels[] = displayAccountNameFull(['account_name' => $customer['account_name'] ?? '', 'account_name_urdu' => $customer['account_name_urdu'] ?? '']);
+        // Clean numeric value - remove any non-numeric characters
+        $topCustomersData[] = floatval(preg_replace('/[^0-9\.\-]/', '', (string)($customer['total_amount'] ?? 0)));
     }
     
 } catch (PDOException $e) {
@@ -195,6 +329,31 @@ try {
     $topItemsData = [];
     $topCustomersLabels = [];
     $topCustomersData = [];
+    $dashboardSales = [];
+    $dashboardTotalAmount = 0;
+    $dashboardTotalDiscount = 0;
+    $dashboardTotalNetAmount = 0;
+    $dashboardTotalPaidAmount = 0;
+    $dashboardTotalBalanceAmount = 0;
+    $salesDateFrom = date('Y-m-d');
+    $salesDateTo = date('Y-m-d');
+    $dashboardTransactions = [];
+    $dashboardCashDebitTotal = 0;
+    $dashboardCashDebitCount = 0;
+    $dashboardCashCreditTotal = 0;
+    $dashboardCashCreditCount = 0;
+    $dashboardJournalTotal = 0;
+    $dashboardJournalCount = 0;
+    $transactionsDateFrom = date('Y-m-d');
+    $transactionsDateTo = date('Y-m-d');
+    $dashboardPurchases = [];
+    $dashboardPurchaseTotalAmount = 0;
+    $dashboardPurchaseTotalDiscount = 0;
+    $dashboardPurchaseTotalNetAmount = 0;
+    $dashboardPurchaseTotalPaidAmount = 0;
+    $dashboardPurchaseTotalBalanceAmount = 0;
+    $purchasesDateFrom = date('Y-m-d');
+    $purchasesDateTo = date('Y-m-d');
 }
 
 include 'includes/header.php';
@@ -244,6 +403,7 @@ include 'includes/header.php';
 </div>
 
 <!-- Quick Access Cards -->
+<!--
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
         <div class="stat-card">
@@ -313,6 +473,7 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+-->
 
 <!-- Statistics Row -->
 <div class="row mb-4 equal-height">
@@ -435,7 +596,7 @@ include 'includes/header.php';
 <!-- Charts Section -->
 <div class="row mt-4 equal-height">
     <!-- Sales & Purchases Line Chart -->
-    <div class="col-md-8 mb-4">
+    <div class="col-md-12 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="fas fa-chart-line"></i> <?php echo t('sales'); ?> & <?php echo t('purchases'); ?> <?php echo t('report'); ?></h5>
@@ -449,6 +610,7 @@ include 'includes/header.php';
     </div>
     
     <!-- Profit Chart -->
+    <!--
     <div class="col-md-4 mb-4">
         <div class="card">
             <div class="card-header">
@@ -461,6 +623,7 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
+    -->
 </div>
 
 <div class="row equal-height">
@@ -487,6 +650,364 @@ include 'includes/header.php';
             <div class="card-body d-flex flex-column">
                 <div class="flex-grow-1" style="position: relative; height: 350px;">
                     <canvas id="topCustomersChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales List Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0"><i class="fas fa-cash-register"></i> <?php echo t('all_sales_list'); ?></h5>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="GET" class="row g-2" id="salesFilterForm">
+                            <input type="hidden" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                            <input type="hidden" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                            <div class="col-md-4">
+                                <input type="date" class="form-control form-control-sm" name="sales_date_from" id="sales_date_from" value="<?php echo htmlspecialchars($salesDateFrom); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="date" class="form-control form-control-sm" name="sales_date_to" id="sales_date_to" value="<?php echo htmlspecialchars($salesDateTo); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-search"></i> <?php echo t('filter'); ?>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th><?php echo t('bill_no'); ?></th>
+                                <th><?php echo t('date'); ?></th>
+                                <th><?php echo t('customer'); ?></th>
+                                <th><?php echo t('total'); ?></th>
+                                <th><?php echo t('discount'); ?></th>
+                                <th><?php echo t('net_amount'); ?></th>
+                                <th><?php echo t('paid_amount'); ?></th>
+                                <th><?php echo t('balance'); ?></th>
+                                <th><?php echo t('actions'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($dashboardSales)): ?>
+                                <tr>
+                                    <td colspan="9" class="text-center"><?php echo t('no_records'); ?></td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($dashboardSales as $sale): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($sale['sale_no'] ?? ''); ?></td>
+                                        <td><?php echo formatDate($sale['sale_date']); ?></td>
+                                        <td><?php echo displayAccountNameFull($sale); ?></td>
+                                        <td><?php echo formatCurrency($sale['total_amount']); ?></td>
+                                        <td><?php echo formatCurrency($sale['discount']); ?></td>
+                                        <td><strong><?php echo formatCurrency($sale['net_amount']); ?></strong></td>
+                                        <td><?php echo formatCurrency($sale['paid_amount']); ?></td>
+                                        <td>
+                                            <span class="badge <?php echo $sale['balance_amount'] > 0 ? 'bg-warning' : 'bg-success'; ?>">
+                                                <?php echo formatCurrency($sale['balance_amount']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="<?php echo BASE_URL; ?>sales/view.php?id=<?php echo $sale['id']; ?>" class="btn btn-sm btn-info" title="<?php echo t('view'); ?>">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="<?php echo BASE_URL; ?>sales/edit.php?id=<?php echo $sale['id']; ?>" class="btn btn-sm btn-warning" title="<?php echo t('edit'); ?>">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="<?php echo BASE_URL; ?>sales/print.php?id=<?php echo $sale['id']; ?>" class="btn btn-sm btn-secondary" target="_blank" title="<?php echo t('print'); ?>">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-success whatsapp-share-btn" 
+                                                    data-sale-id="<?php echo $sale['id']; ?>"
+                                                    data-sale-no="<?php echo htmlspecialchars($sale['sale_no'] ?? ''); ?>"
+                                                    data-mobile="<?php echo htmlspecialchars($sale['mobile'] ?? ''); ?>"
+                                                    data-phone="<?php echo htmlspecialchars($sale['phone'] ?? ''); ?>"
+                                                    title="<?php echo t('share_via_whatsapp'); ?>">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <td colspan="3" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardTotalAmount); ?></strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardTotalDiscount); ?></strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardTotalNetAmount); ?></strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardTotalPaidAmount); ?></strong></td>
+                                <td>
+                                    <span class="badge <?php echo $dashboardTotalBalanceAmount > 0 ? 'bg-warning' : 'bg-success'; ?>">
+                                        <strong><?php echo formatCurrency($dashboardTotalBalanceAmount); ?></strong>
+                                    </span>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="mt-3 text-center">
+                    <a href="<?php echo BASE_URL; ?>sales/list.php" class="btn btn-primary">
+                        <i class="fas fa-list"></i> <?php echo t('view_all_sales'); ?>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions List Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> <?php echo t('all_transactions'); ?></h5>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="GET" class="row g-2" id="transactionsFilterForm">
+                            <input type="hidden" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                            <input type="hidden" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                            <input type="hidden" name="sales_date_from" value="<?php echo htmlspecialchars($salesDateFrom); ?>">
+                            <input type="hidden" name="sales_date_to" value="<?php echo htmlspecialchars($salesDateTo); ?>">
+                            <div class="col-md-4">
+                                <input type="date" class="form-control form-control-sm" name="transactions_date_from" id="transactions_date_from" value="<?php echo htmlspecialchars($transactionsDateFrom); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="date" class="form-control form-control-sm" name="transactions_date_to" id="transactions_date_to" value="<?php echo htmlspecialchars($transactionsDateTo); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-search"></i> <?php echo t('filter'); ?>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>T.No</th>
+                                <th><?php echo t('date'); ?></th>
+                                <th><?php echo t('account_name'); ?></th>
+                                <th><?php echo t('cash_debit_type'); ?></th>
+                                <th><?php echo t('cash_credit_type'); ?></th>
+                                <?php /* Commented out JOURNAL column - user requested
+                                <th><?php echo t('journal_type'); ?></th>
+                                */ ?>
+                                <th><?php echo t('amount'); ?></th>
+                                <th><?php echo t('description'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($dashboardTransactions)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center"><?php echo t('no_records'); ?></td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($dashboardTransactions as $transaction): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($transaction['transaction_no'] ?? '-'); ?></td>
+                                        <td><?php echo formatDate($transaction['transaction_date']); ?></td>
+                                        <td><?php echo !empty($transaction['account_name']) ? displayAccountNameFull($transaction) : '-'; ?></td>
+                                        <td>
+                                            <?php
+                                            // Show Cash Debit if transaction_type is debit and not journal
+                                            if ($transaction['transaction_type'] == 'debit' && ($transaction['reference_type'] ?? '') != 'journal') {
+                                                echo '<span class="badge bg-danger">' . formatCurrency($transaction['amount']) . '</span>';
+                                            } else {
+                                                echo '-';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td>
+                                            <?php
+                                            // Show Cash Credit if transaction_type is credit and not journal
+                                            if ($transaction['transaction_type'] == 'credit' && ($transaction['reference_type'] ?? '') != 'journal') {
+                                                echo '<span class="badge bg-success">' . formatCurrency($transaction['amount']) . '</span>';
+                                            } else {
+                                                echo '-';
+                                            }
+                                            ?>
+                                        </td>
+                                        <?php /* Commented out JOURNAL column - user requested
+                                        <td>
+                                            <?php
+                                            // Show Journal if reference_type is journal
+                                            if (($transaction['reference_type'] ?? '') == 'journal') {
+                                                echo '<span class="badge bg-info">' . formatCurrency($transaction['amount']) . '</span>';
+                                            } else {
+                                                echo '-';
+                                            }
+                                            ?>
+                                        </td>
+                                        */ ?>
+                                        <td><strong><?php echo formatCurrency($transaction['amount']); ?></strong></td>
+                                        <td><?php echo htmlspecialchars($transaction['narration'] ?? '-'); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end" style="background-color: #cfe2ff;"><strong><?php echo t('total'); ?>:</strong></td>
+                                <td style="background-color: #f8d7da; color: #842029;">
+                                    <strong><?php echo formatCurrency($dashboardCashDebitTotal); ?></strong>
+                                    <br><small>(<?php echo $dashboardCashDebitCount ?? 0; ?> <?php echo t('transactions'); ?>)</small>
+                                </td>
+                                <td style="background-color: #d1e7dd; color: #0f5132;">
+                                    <strong><?php echo formatCurrency($dashboardCashCreditTotal); ?></strong>
+                                    <br><small>(<?php echo $dashboardCashCreditCount ?? 0; ?> <?php echo t('transactions'); ?>)</small>
+                                </td>
+                                <?php /* Commented out JOURNAL footer - user requested
+                                <td style="background-color: #cff4fc; color: #055160;">
+                                    <strong><?php echo formatCurrency($dashboardJournalTotal); ?></strong>
+                                    <br><small>(<?php echo $dashboardJournalCount ?? 0; ?> <?php echo t('transactions'); ?>)</small>
+                                </td>
+                                */ ?>
+                                <td style="background-color: #cfe2ff;"></td>
+                                <td style="background-color: #cfe2ff;"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="mt-3 text-center">
+                    <a href="<?php echo BASE_URL; ?>transactions/list.php" class="btn btn-primary">
+                        <i class="fas fa-list"></i> <?php echo t('view_all_transactions'); ?>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Purchases List Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> <?php echo t('all_purchases_list'); ?></h5>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="GET" class="row g-2" id="purchasesFilterForm">
+                            <input type="hidden" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                            <input type="hidden" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                            <input type="hidden" name="sales_date_from" value="<?php echo htmlspecialchars($salesDateFrom); ?>">
+                            <input type="hidden" name="sales_date_to" value="<?php echo htmlspecialchars($salesDateTo); ?>">
+                            <input type="hidden" name="transactions_date_from" value="<?php echo htmlspecialchars($transactionsDateFrom); ?>">
+                            <input type="hidden" name="transactions_date_to" value="<?php echo htmlspecialchars($transactionsDateTo); ?>">
+                            <div class="col-md-4">
+                                <input type="date" class="form-control form-control-sm" name="purchases_date_from" id="purchases_date_from" value="<?php echo htmlspecialchars($purchasesDateFrom); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="date" class="form-control form-control-sm" name="purchases_date_to" id="purchases_date_to" value="<?php echo htmlspecialchars($purchasesDateTo); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-search"></i> <?php echo t('filter'); ?>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th><?php echo t('bill_no'); ?></th>
+                                <th><?php echo t('date'); ?></th>
+                                <th><?php echo t('supplier'); ?></th>
+                                <th><?php echo t('total'); ?></th>
+                                <th><?php echo t('discount'); ?></th>
+                                <th><?php echo t('net_amount'); ?></th>
+                                <th><?php echo t('paid_amount'); ?></th>
+                                <th><?php echo t('balance'); ?></th>
+                                <th><?php echo t('actions'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($dashboardPurchases)): ?>
+                                <tr>
+                                    <td colspan="9" class="text-center"><?php echo t('no_records'); ?></td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($dashboardPurchases as $purchase): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($purchase['purchase_no'] ?? ''); ?></td>
+                                        <td><?php echo formatDate($purchase['purchase_date']); ?></td>
+                                        <td><?php echo displayAccountNameFull($purchase); ?></td>
+                                        <td><?php echo formatCurrency($purchase['total_amount']); ?></td>
+                                        <td><?php echo formatCurrency($purchase['discount']); ?></td>
+                                        <td><strong><?php echo formatCurrency($purchase['net_amount']); ?></strong></td>
+                                        <td><?php echo formatCurrency($purchase['paid_amount']); ?></td>
+                                        <td>
+                                            <span class="badge <?php echo $purchase['balance_amount'] > 0 ? 'bg-warning' : 'bg-success'; ?>">
+                                                <?php echo formatCurrency($purchase['balance_amount']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="<?php echo BASE_URL; ?>purchases/view.php?id=<?php echo $purchase['id']; ?>" class="btn btn-sm btn-info" title="<?php echo t('view'); ?>">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="<?php echo BASE_URL; ?>purchases/print.php?id=<?php echo $purchase['id']; ?>" class="btn btn-sm btn-secondary" target="_blank" title="<?php echo t('print'); ?>">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-success whatsapp-share-purchase-btn" 
+                                                    data-purchase-id="<?php echo $purchase['id']; ?>"
+                                                    data-purchase-no="<?php echo htmlspecialchars($purchase['purchase_no'] ?? ''); ?>"
+                                                    data-mobile="<?php echo htmlspecialchars($purchase['mobile'] ?? ''); ?>"
+                                                    data-phone="<?php echo htmlspecialchars($purchase['phone'] ?? ''); ?>"
+                                                    title="<?php echo t('share_via_whatsapp'); ?>">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <td colspan="3" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardPurchaseTotalAmount); ?></strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardPurchaseTotalDiscount); ?></strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardPurchaseTotalNetAmount); ?></strong></td>
+                                <td><strong><?php echo formatCurrency($dashboardPurchaseTotalPaidAmount); ?></strong></td>
+                                <td>
+                                    <span class="badge <?php echo $dashboardPurchaseTotalBalanceAmount > 0 ? 'bg-warning' : 'bg-success'; ?>">
+                                        <strong><?php echo formatCurrency($dashboardPurchaseTotalBalanceAmount); ?></strong>
+                                    </span>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="mt-3 text-center">
+                    <a href="<?php echo BASE_URL; ?>purchases/list.php" class="btn btn-primary">
+                        <i class="fas fa-list"></i> <?php echo t('view_all_purchases'); ?>
+                    </a>
                 </div>
             </div>
         </div>
@@ -544,7 +1065,30 @@ function createGradient(ctx, color1, color2) {
 
 // Initialize Charts
 document.addEventListener('DOMContentLoaded', function() {
-    const currencySymbol = '<?php echo CURRENCY_SYMBOL; ?>';
+    // Static currency symbol - never change (Rs.)
+    const currencySymbol = 'Rs.';
+    
+    // Helper function to clean numeric values
+    function cleanNumericValue(value) {
+        if (value === null || value === undefined || value === '') {
+            return 0;
+        }
+        // Convert to string and remove any non-numeric characters except decimal and minus
+        const cleaned = String(value).replace(/[^0-9\.\-]/g, '');
+        return parseFloat(cleaned) || 0;
+    }
+    
+    // Helper function to format currency - remove .00 for whole numbers
+    function formatCurrencyValue(value) {
+        const cleaned = cleanNumericValue(value);
+        if (cleaned % 1 === 0) {
+            // Whole number - no decimals
+            return cleaned.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        } else {
+            // Has decimals - show 2 decimal places
+            return cleaned.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+    }
     
     // Sales & Purchases Line Chart
     const salesPurchasesCtx = document.getElementById('salesPurchasesChart');
@@ -559,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: <?php echo json_encode($chartLabels); ?>,
                 datasets: [{
                     label: '<?php echo t('sales'); ?>',
-                    data: <?php echo json_encode($chartSalesData); ?>,
+                    data: <?php echo json_encode(array_map(function($v) { return floatval(preg_replace('/[^0-9\.\-]/', '', (string)$v)); }, $chartSalesData)); ?>,
                     borderColor: 'rgb(102, 126, 234)',
                     backgroundColor: salesGradient,
                     borderWidth: 3,
@@ -572,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     pointBorderWidth: 2
                 }, {
                     label: '<?php echo t('purchases'); ?>',
-                    data: <?php echo json_encode($chartPurchasesData); ?>,
+                    data: <?php echo json_encode(array_map(function($v) { return floatval(preg_replace('/[^0-9\.\-]/', '', (string)$v)); }, $chartPurchasesData)); ?>,
                     borderColor: 'rgb(118, 75, 162)',
                     backgroundColor: purchasesGradient,
                     borderWidth: 3,
@@ -608,7 +1152,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         bodyFont: { size: 13 },
                         callbacks: {
                             label: function(context) {
-                                return context.dataset.label + ': ' + currencySymbol + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                const value = cleanNumericValue(context.parsed.y);
+                                return context.dataset.label + ': ' + currencySymbol + ' ' + formatCurrencyValue(value);
                             }
                         }
                     }
@@ -651,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: <?php echo json_encode($chartLabels); ?>,
                 datasets: [{
                     label: '<?php echo t('profit'); ?>',
-                    data: <?php echo json_encode($chartProfitData); ?>,
+                    data: <?php echo json_encode(array_map(function($v) { return floatval(preg_replace('/[^0-9\.\-]/', '', (string)$v)); }, $chartProfitData)); ?>,
                     borderColor: 'rgb(17, 153, 142)',
                     backgroundColor: profitGradient,
                     borderWidth: 3,
@@ -681,9 +1226,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         padding: 12,
                         callbacks: {
                             label: function(context) {
-                                const value = context.parsed.y;
+                                const value = cleanNumericValue(context.parsed.y);
                                 const sign = value >= 0 ? '+' : '';
-                                return context.dataset.label + ': ' + sign + currencySymbol + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                return context.dataset.label + ': ' + sign + currencySymbol + ' ' + formatCurrencyValue(value);
                             }
                         }
                     }
@@ -697,7 +1242,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         ticks: {
                             font: { size: 11 },
                             callback: function(value) {
-                                return currencySymbol + value.toLocaleString('en-US');
+                                const cleaned = cleanNumericValue(value);
+                                return currencySymbol + ' ' + cleaned.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
                             }
                         }
                     },
@@ -730,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: <?php echo json_encode($topItemsLabels); ?>,
                 datasets: [{
-                    data: <?php echo json_encode($topItemsData); ?>,
+                    data: <?php echo json_encode(array_map(function($v) { return floatval(preg_replace('/[^0-9\.\-]/', '', (string)$v)); }, $topItemsData)); ?>,
                     backgroundColor: colors,
                     borderColor: '#fff',
                     borderWidth: 3,
@@ -756,10 +1302,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return label + ': ' + currencySymbol + value.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' (' + percentage + '%)';
+                                const value = cleanNumericValue(context.parsed || 0);
+                                const total = context.dataset.data.reduce((a, b) => cleanNumericValue(a) + cleanNumericValue(b), 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                return label + ': ' + currencySymbol + ' ' + formatCurrencyValue(value) + ' (' + percentage + '%)';
                             }
                         }
                     }
@@ -782,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: <?php echo json_encode($topCustomersLabels); ?>,
                 datasets: [{
                     label: '<?php echo t('total_amount'); ?>',
-                    data: <?php echo json_encode($topCustomersData); ?>,
+                    data: <?php echo json_encode(array_map(function($v) { return floatval(preg_replace('/[^0-9\.\-]/', '', (string)$v)); }, $topCustomersData)); ?>,
                     backgroundColor: customerGradient,
                     borderColor: 'rgb(102, 126, 234)',
                     borderWidth: 2,
@@ -803,7 +1349,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         padding: 12,
                         callbacks: {
                             label: function(context) {
-                                return currencySymbol + context.parsed.x.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                const value = cleanNumericValue(context.parsed.x);
+                                return currencySymbol + ' ' + formatCurrencyValue(value);
                             }
                         }
                     }
@@ -817,7 +1364,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         ticks: {
                             font: { size: 11 },
                             callback: function(value) {
-                                return currencySymbol + value.toLocaleString('en-US');
+                                const cleaned = cleanNumericValue(value);
+                                return currencySymbol + ' ' + cleaned.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
                             }
                         }
                     },
@@ -834,6 +1382,314 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } else if (topCustomersCtx) {
         topCustomersCtx.parentElement.innerHTML = '<div class="text-center p-4 text-muted"><i class="fas fa-info-circle"></i> <?php echo t('no_data_available'); ?></div>';
+    }
+});
+</script>
+
+<!-- WhatsApp Share Modal for Sales -->
+<div class="modal fade" id="whatsappShareModal" tabindex="-1" aria-labelledby="whatsappShareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="whatsappShareModalLabel">
+                    <i class="fab fa-whatsapp text-success"></i> <?php echo t('share_via_whatsapp'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><?php echo t('invoice'); ?>: <strong id="whatsapp_sale_no"></strong></p>
+                <div class="mb-3">
+                    <label for="whatsapp_phone" class="form-label"><?php echo t('phone_number'); ?> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="whatsapp_phone" placeholder="<?php echo t('enter_phone_number'); ?>" required>
+                    <small class="form-text text-muted"><?php echo t('format'); ?>: +92-300-0000000</small>
+                </div>
+                <input type="hidden" id="whatsapp_sale_id" value="">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-success" id="whatsappShareBtn">
+                    <i class="fab fa-whatsapp"></i> <?php echo t('send'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp Share Modal for Purchases -->
+<div class="modal fade" id="whatsappPurchaseShareModal" tabindex="-1" aria-labelledby="whatsappPurchaseShareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="whatsappPurchaseShareModalLabel">
+                    <i class="fab fa-whatsapp text-success"></i> <?php echo t('share_via_whatsapp'); ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><?php echo t('invoice'); ?>: <strong id="whatsapp_purchase_no"></strong></p>
+                <div class="mb-3">
+                    <label for="whatsapp_purchase_phone" class="form-label"><?php echo t('phone_number'); ?> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="whatsapp_purchase_phone" placeholder="<?php echo t('enter_phone_number'); ?>" required>
+                    <small class="form-text text-muted"><?php echo t('format'); ?>: +92-300-0000000</small>
+                </div>
+                <input type="hidden" id="whatsapp_purchase_id" value="">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-success" id="whatsappPurchaseShareBtn">
+                    <i class="fab fa-whatsapp"></i> <?php echo t('send'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// WhatsApp share functionality for sales
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.whatsapp-share-btn')) {
+        const btn = e.target.closest('.whatsapp-share-btn');
+        const saleId = btn.getAttribute('data-sale-id');
+        const saleNo = btn.getAttribute('data-sale-no');
+        const mobile = btn.getAttribute('data-mobile') || '';
+        const phone = btn.getAttribute('data-phone') || '';
+        const phoneNumber = mobile || phone;
+        
+        document.getElementById('whatsapp_sale_id').value = saleId;
+        document.getElementById('whatsapp_sale_no').textContent = saleNo;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('whatsappShareModal'));
+        modal.show();
+        
+        // Set phone number if available (after modal is shown)
+        setTimeout(() => {
+            const phoneInput = document.getElementById('whatsapp_phone');
+            if (phoneInput) {
+                // Remove any existing mask
+                if (phoneInput.inputmask) {
+                    phoneInput.inputmask.remove();
+                }
+                // Set phone number if available, otherwise clear
+                if (phoneNumber) {
+                    phoneInput.value = phoneNumber;
+                } else {
+                    phoneInput.value = '';
+                }
+                phoneInput.focus();
+            }
+        }, 100);
+    }
+});
+
+// Handle WhatsApp share button in modal for sales
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#whatsappShareBtn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const phoneInput = document.getElementById('whatsapp_phone');
+        if (!phoneInput) {
+            alert('<?php echo t('please_enter_phone_number'); ?>');
+            return;
+        }
+        
+        // Get phone number (remove any non-digit characters except +)
+        let phoneNumber = phoneInput.value.trim().replace(/[^0-9+]/g, '');
+        
+        const saleId = document.getElementById('whatsapp_sale_id').value;
+        
+        if (!phoneNumber || phoneNumber.length < 10) {
+            alert('<?php echo t('please_enter_phone_number'); ?>');
+            return;
+        }
+        
+        // Format phone number: ensure it starts with +92
+        let cleanPhone = phoneNumber;
+        if (cleanPhone.startsWith('0')) {
+            cleanPhone = '+92' + cleanPhone.substring(1);
+        } else if (cleanPhone.startsWith('92') && !cleanPhone.startsWith('+92')) {
+            cleanPhone = '+' + cleanPhone;
+        } else if (!cleanPhone.startsWith('+92')) {
+            cleanPhone = '+92' + cleanPhone;
+        }
+        
+        // Validate phone number (should be 13 characters: +92XXXXXXXXXX)
+        if (cleanPhone.length < 13 || !cleanPhone.startsWith('+92')) {
+            alert('<?php echo t('invalid_phone_number'); ?>');
+            return;
+        }
+        
+        // Disable button during fetch
+        const btn = e.target.closest('#whatsappShareBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('sending'); ?>...';
+        
+        // Fetch invoice details
+        fetch('<?php echo BASE_URL; ?>sales/whatsapp-details-ajax.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'id=' + encodeURIComponent(saleId)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Open WhatsApp with message (remove + from phone number for wa.me)
+                const whatsappUrl = 'https://wa.me/' + cleanPhone.substring(1) + '?text=' + encodeURIComponent(data.message);
+                window.open(whatsappUrl, '_blank');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('whatsappShareModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                // Reset button
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            } else {
+                alert(data.message || '<?php echo t('error_fetching_invoice'); ?>');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('<?php echo t('error_fetching_invoice'); ?>');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+});
+
+// WhatsApp share functionality for purchases
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.whatsapp-share-purchase-btn')) {
+        const btn = e.target.closest('.whatsapp-share-purchase-btn');
+        const purchaseId = btn.getAttribute('data-purchase-id');
+        const purchaseNo = btn.getAttribute('data-purchase-no');
+        const mobile = btn.getAttribute('data-mobile') || '';
+        const phone = btn.getAttribute('data-phone') || '';
+        const phoneNumber = mobile || phone;
+        
+        document.getElementById('whatsapp_purchase_id').value = purchaseId;
+        document.getElementById('whatsapp_purchase_no').textContent = purchaseNo;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('whatsappPurchaseShareModal'));
+        modal.show();
+        
+        // Set phone number if available (after modal is shown)
+        setTimeout(() => {
+            const phoneInput = document.getElementById('whatsapp_purchase_phone');
+            if (phoneInput) {
+                // Remove any existing mask
+                if (phoneInput.inputmask) {
+                    phoneInput.inputmask.remove();
+                }
+                // Set phone number if available, otherwise clear
+                if (phoneNumber) {
+                    phoneInput.value = phoneNumber;
+                } else {
+                    phoneInput.value = '';
+                }
+                phoneInput.focus();
+            }
+        }, 100);
+    }
+});
+
+// Handle WhatsApp share button in modal for purchases
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#whatsappPurchaseShareBtn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const phoneInput = document.getElementById('whatsapp_purchase_phone');
+        if (!phoneInput) {
+            alert('<?php echo t('please_enter_phone_number'); ?>');
+            return;
+        }
+        
+        // Get phone number (remove any non-digit characters except +)
+        let phoneNumber = phoneInput.value.trim().replace(/[^0-9+]/g, '');
+        
+        const purchaseId = document.getElementById('whatsapp_purchase_id').value;
+        
+        if (!phoneNumber || phoneNumber.length < 10) {
+            alert('<?php echo t('please_enter_phone_number'); ?>');
+            return;
+        }
+        
+        // Format phone number: ensure it starts with +92
+        let cleanPhone = phoneNumber;
+        if (cleanPhone.startsWith('0')) {
+            cleanPhone = '+92' + cleanPhone.substring(1);
+        } else if (cleanPhone.startsWith('92') && !cleanPhone.startsWith('+92')) {
+            cleanPhone = '+' + cleanPhone;
+        } else if (!cleanPhone.startsWith('+92')) {
+            cleanPhone = '+92' + cleanPhone;
+        }
+        
+        // Validate phone number (should be 13 characters: +92XXXXXXXXXX)
+        if (cleanPhone.length < 13 || !cleanPhone.startsWith('+92')) {
+            alert('<?php echo t('invalid_phone_number'); ?>');
+            return;
+        }
+        
+        // Disable button during fetch
+        const btn = e.target.closest('#whatsappPurchaseShareBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo t('sending'); ?>...';
+        
+        // Fetch invoice details
+        fetch('<?php echo BASE_URL; ?>purchases/whatsapp-details-ajax.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'id=' + encodeURIComponent(purchaseId)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Open WhatsApp with message (remove + from phone number for wa.me)
+                const whatsappUrl = 'https://wa.me/' + cleanPhone.substring(1) + '?text=' + encodeURIComponent(data.message);
+                window.open(whatsappUrl, '_blank');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('whatsappPurchaseShareModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                // Reset button
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            } else {
+                alert(data.message || '<?php echo t('error_fetching_invoice'); ?>');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('<?php echo t('error_fetching_invoice'); ?>');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
     }
 });
 </script>

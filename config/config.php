@@ -71,7 +71,7 @@ define('RECORDS_PER_PAGE', 20);
 define('DATE_FORMAT', 'Y-m-d');
 define('DATE_DISPLAY_FORMAT', 'd-m-Y');
 
-// Currency
+// Currency - Static values
 define('CURRENCY_SYMBOL', 'Rs.');
 define('CURRENCY_CODE', 'PKR');
 
@@ -98,7 +98,66 @@ function requireLogin() {
 }
 
 function formatCurrency($amount) {
-    return CURRENCY_SYMBOL . ' ' . number_format($amount, 2);
+    // Static currency symbol - never change
+    static $currencySymbol = 'Rs.';
+    
+    // Ensure amount is numeric and handle edge cases
+    if ($amount === null || $amount === '' || $amount === false) {
+        $amount = 0;
+    }
+    
+    // Convert to string first to handle any type
+    $amountStr = (string)$amount;
+    
+    // Extract only numeric characters and decimal point
+    // This removes any extra characters, IDs, or concatenated values
+    $amountStr = preg_replace('/[^0-9\.\-]/', '', $amountStr);
+    
+    // Handle empty result
+    if ($amountStr === '' || $amountStr === '-') {
+        $amountStr = '0';
+    }
+    
+    // Convert to float
+    $amount = floatval($amountStr);
+    
+    // Format with proper number formatting (no thousands separator issues)
+    // Remove .00 if decimal part is zero
+    if (fmod($amount, 1) == 0) {
+        // If it's a whole number, remove .00
+        $formatted = number_format($amount, 0, '.', ',');
+    } else {
+        // Has decimals, show 2 decimal places
+        $formatted = number_format($amount, 2, '.', ',');
+    }
+    
+    // Return with static currency symbol (always use the static variable)
+    return $currencySymbol . ' ' . $formatted;
+}
+
+// Helper function to format numbers without .00 for whole numbers
+function formatNumber($number, $decimals = 2) {
+    $number = floatval($number);
+    if (fmod($number, 1) == 0) {
+        return number_format($number, 0, '.', ',');
+    } else {
+        return number_format($number, $decimals, '.', ',');
+    }
+}
+
+// Helper function to format stock quantities (no commas, 0 shows as "0", whole numbers without decimals)
+function formatStock($stock) {
+    $stock = floatval($stock);
+    if ($stock == 0) {
+        return '0';
+    }
+    if (fmod($stock, 1) == 0) {
+        // Whole number - show without decimals and without commas
+        return number_format($stock, 0, '.', '');
+    } else {
+        // Has decimals - show with 2 decimal places but no commas
+        return number_format($stock, 2, '.', '');
+    }
 }
 
 function formatDate($date) {
@@ -107,9 +166,10 @@ function formatDate($date) {
 }
 
 function sanitizeInput($data) {
+    if ($data === null) return '';
     $data = trim($data);
     $data = stripslashes($data);
-    $data = htmlspecialchars($data);
+    $data = htmlspecialchars($data ?? '');
     return $data;
 }
 
@@ -126,9 +186,9 @@ function displayAccountName($account) {
     if (empty($account)) return '';
     $lang = getLang();
     if ($lang == 'ur' && !empty($account['account_name_urdu'])) {
-        return htmlspecialchars($account['account_name_urdu']);
+        return htmlspecialchars($account['account_name_urdu'] ?? '');
     }
-    return htmlspecialchars($account['account_name']);
+    return htmlspecialchars($account['account_name'] ?? '');
 }
 
 /**
@@ -136,9 +196,9 @@ function displayAccountName($account) {
  */
 function displayAccountNameFull($account) {
     if (empty($account)) return '';
-    $name = htmlspecialchars($account['account_name']);
+    $name = htmlspecialchars($account['account_name'] ?? '');
     if (!empty($account['account_name_urdu'])) {
-        $name .= ' / ' . htmlspecialchars($account['account_name_urdu']);
+        $name .= ' / ' . htmlspecialchars($account['account_name_urdu'] ?? '');
     }
     return $name;
 }
@@ -150,9 +210,9 @@ function displayItemName($item) {
     if (empty($item)) return '';
     $lang = getLang();
     if ($lang == 'ur' && !empty($item['item_name_urdu'])) {
-        return htmlspecialchars($item['item_name_urdu']);
+        return htmlspecialchars($item['item_name_urdu'] ?? '');
     }
-    return htmlspecialchars($item['item_name']);
+    return htmlspecialchars($item['item_name'] ?? '');
 }
 
 /**
@@ -160,9 +220,9 @@ function displayItemName($item) {
  */
 function displayItemNameFull($item) {
     if (empty($item)) return '';
-    $name = htmlspecialchars($item['item_name']);
+    $name = htmlspecialchars($item['item_name'] ?? '');
     if (!empty($item['item_name_urdu'])) {
-        $name .= ' / ' . htmlspecialchars($item['item_name_urdu']);
+        $name .= ' / ' . htmlspecialchars($item['item_name_urdu'] ?? '');
     }
     return $name;
 }
@@ -174,9 +234,9 @@ function displayTypeName($type) {
     if (empty($type)) return '';
     $lang = getLang();
     if ($lang == 'ur' && !empty($type['type_name_urdu'])) {
-        return htmlspecialchars($type['type_name_urdu']);
+        return htmlspecialchars($type['type_name_urdu'] ?? '');
     }
-    return htmlspecialchars($type['type_name']);
+    return htmlspecialchars($type['type_name'] ?? '');
 }
 
 /**
@@ -184,9 +244,9 @@ function displayTypeName($type) {
  */
 function displayTypeNameFull($type) {
     if (empty($type)) return '';
-    $name = htmlspecialchars($type['type_name']);
+    $name = htmlspecialchars($type['type_name'] ?? '');
     if (!empty($type['type_name_urdu'])) {
-        $name .= ' / ' . htmlspecialchars($type['type_name_urdu']);
+        $name .= ' / ' . htmlspecialchars($type['type_name_urdu'] ?? '');
     }
     return $name;
 }

@@ -34,10 +34,11 @@ try {
     $db = getDB();
     $db->beginTransaction();
     
-    // Generate transaction number
+    // Generate transaction number (Jv01, Jv02, etc.)
     $stmt = $db->query("SELECT MAX(id) as max_id FROM transactions");
     $maxId = $stmt->fetch()['max_id'] ?? 0;
-    $transactionNo = generateCode('JV', $maxId);
+    $nextNumber = $maxId + 1;
+    $transactionNo = 'Jv' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
     
     // Insert debit transaction
     $stmt = $db->prepare("INSERT INTO transactions (transaction_no, transaction_date, transaction_type, account_id, amount, narration, reference_type, created_by) VALUES (?, ?, 'debit', ?, ?, ?, 'journal', ?)");

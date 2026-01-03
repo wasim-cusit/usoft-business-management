@@ -4,7 +4,7 @@ requireLogin();
 
 $pageTitle = 'stock_check';
 
-$checkType = $_GET['check_type'] ?? 'low_stock';
+$checkType = $_GET['check_type'] ?? 'all';
 
 try {
     $db = getDB();
@@ -22,6 +22,16 @@ try {
         $items = $stmt->fetchAll();
         $title = t('all_check');
     }
+    
+    // Get actual sale rates from sale_items for each item
+    foreach ($items as &$item) {
+        $stmt = $db->prepare("SELECT rate FROM sale_items WHERE item_id = ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$item['id']]);
+        $saleRateData = $stmt->fetch();
+        // Use actual sale rate if exists, otherwise use default sale_rate
+        $item['actual_sale_rate'] = $saleRateData ? $saleRateData['rate'] : $item['sale_rate'];
+    }
+    unset($item); // Break reference
     
 } catch (PDOException $e) {
     $items = [];
@@ -92,18 +102,18 @@ include '../includes/header.php';
                                     $statusText = $item['current_stock'] <= 0 ? t('out_of_stock_status') : ($difference < 0 ? t('low_stock_status') : t('normal_status'));
                                     ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($item['item_code']); ?></td>
+                                        <td><?php echo htmlspecialchars($item['item_code'] ?? ''); ?></td>
                                         <td><?php echo displayItemNameFull($item); ?></td>
-                                        <td><?php echo htmlspecialchars($item['unit']); ?></td>
-                                        <td><strong><?php echo number_format($item['current_stock'], 2); ?></strong></td>
-                                        <td><?php echo number_format($item['min_stock'], 2); ?></td>
+                                        <td><?php echo htmlspecialchars($item['unit'] ?? ''); ?></td>
+                                        <td><strong><?php echo formatNumber($item['current_stock']); ?></strong></td>
+                                        <td><?php echo formatNumber($item['min_stock']); ?></td>
                                         <td>
                                             <span class="badge <?php echo $difference < 0 ? 'bg-danger' : 'bg-success'; ?>">
-                                                <?php echo number_format($difference, 2); ?>
+                                                <?php echo formatNumber($difference); ?>
                                             </span>
                                         </td>
                                         <td><?php echo formatCurrency($item['purchase_rate']); ?></td>
-                                        <td><?php echo formatCurrency($item['sale_rate']); ?></td>
+                                        <td><?php echo formatCurrency($item['actual_sale_rate'] ?? $item['sale_rate']); ?></td>
                                         <td>
                                             <span class="badge <?php echo $statusClass; ?>">
                                                 <?php echo $statusText; ?>

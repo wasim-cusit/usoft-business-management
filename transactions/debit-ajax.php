@@ -9,6 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     exit;
 }
 
+$transactionNo = trim(sanitizeInput($_POST['transaction_no'] ?? ''));
 $transactionDate = $_POST['transaction_date'] ?? date('Y-m-d');
 $accountId = intval($_POST['account_id'] ?? 0);
 $amount = floatval($_POST['amount'] ?? 0);
@@ -28,10 +29,22 @@ try {
     $db = getDB();
     $db->beginTransaction();
     
-    // Generate transaction number
-    $stmt = $db->query("SELECT MAX(id) as max_id FROM transactions");
-    $maxId = $stmt->fetch()['max_id'] ?? 0;
-    $transactionNo = generateCode('DBT', $maxId);
+    // Generate transaction number if not provided
+    if (empty($transactionNo)) {
+        $stmt = $db->query("SELECT MAX(id) as max_id FROM transactions WHERE transaction_type = 'debit' AND (reference_type IS NULL OR reference_type != 'journal')");
+        $maxId = $stmt->fetch()['max_id'] ?? 0;
+        $nextNumber = $maxId + 1;
+        $transactionNo = 'Dbt' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+    } else {
+        // Check if transaction number already exists
+        $stmt = $db->prepare("SELECT id FROM transactions WHERE transaction_no = ?");
+        $stmt->execute([$transactionNo]);
+        if ($stmt->fetch()) {
+            $db->rollBack();
+            echo json_encode(['success' => false, 'message' => t('transaction_no_already_exists')]);
+            exit;
+        }
+    }
     
     // Insert transaction
     $stmt = $db->prepare("INSERT INTO transactions (transaction_no, transaction_date, transaction_type, account_id, amount, narration, created_by) VALUES (?, ?, 'debit', ?, ?, ?, ?)");

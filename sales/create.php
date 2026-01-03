@@ -9,25 +9,71 @@ $error = '';
 // Get accounts and items
 try {
     $db = getDB();
+    
+    // Check if cash sale account exists, if not create it
+    $stmt = $db->query("SELECT id FROM accounts WHERE account_name = 'Cash Sale' OR account_name_urdu = 'کیش فروخت' LIMIT 1");
+    $cashAccount = $stmt->fetch();
+    if (!$cashAccount) {
+        // Create cash sale account
+        try {
+            $stmt = $db->prepare("INSERT INTO accounts (account_name, account_name_urdu, account_type, status) VALUES (?, ?, 'customer', 'active')");
+            $stmt->execute(['Cash Sale', 'کیش فروخت']);
+            $cashAccountId = $db->lastInsertId();
+        } catch (PDOException $e) {
+            // If creation fails, try to get existing one
+            $stmt = $db->query("SELECT id FROM accounts WHERE account_name LIKE '%Cash%' OR account_name_urdu LIKE '%کیش%' LIMIT 1");
+            $cashAccount = $stmt->fetch();
+            $cashAccountId = $cashAccount ? $cashAccount['id'] : 0;
+        }
+    } else {
+        $cashAccountId = $cashAccount['id'];
+    }
+    
     $stmt = $db->query("SELECT * FROM accounts WHERE account_type IN ('customer', 'both') AND status = 'active' ORDER BY account_name");
     $customers = $stmt->fetchAll();
     
     $stmt = $db->query("SELECT * FROM items WHERE status = 'active' ORDER BY item_name");
     $items = $stmt->fetchAll();
+    
+    // Get next sale number for display
+    $stmt = $db->query("SELECT MAX(id) as max_id FROM sales");
+    $maxId = $stmt->fetch()['max_id'] ?? 0;
+    $nextNumber = $maxId + 1;
+    $nextSaleNo = 'Sal' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
 } catch (PDOException $e) {
     $customers = [];
     $items = [];
+    $nextSaleNo = 'Sal01';
+    $cashAccountId = 0;
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $saleDate = $_POST['sale_date'] ?? date('Y-m-d');
     $accountId = intval($_POST['account_id'] ?? 0);
+    $location = sanitizeInput($_POST['location'] ?? '');
+    $details = sanitizeInput($_POST['details'] ?? '');
+    $phone = sanitizeInput($_POST['phone'] ?? '');
+    $bilti = sanitizeInput($_POST['bilti'] ?? '');
     $discount = floatval($_POST['discount'] ?? 0);
     $paidAmount = floatval($_POST['paid_amount'] ?? 0);
+    $bardana = floatval($_POST['bardana'] ?? 0);
+    $netcash = floatval($_POST['netcash'] ?? 0);
     $remarks = sanitizeInput($_POST['remarks'] ?? '');
     $itemIds = $_POST['item_id'] ?? [];
-    $quantities = $_POST['quantity'] ?? [];
+    $qtys = $_POST['qty'] ?? [];
+    $narchs = $_POST['narch'] ?? [];
+    $bags = $_POST['bag'] ?? [];
+    $wts = $_POST['wt'] ?? [];
+    $kates = $_POST['kate'] ?? [];
+    $wt2s = $_POST['wt2'] ?? [];
     $rates = $_POST['rate'] ?? [];
+    $amounts = $_POST['amount'] ?? [];
+    
+    // Check if cash sale
+    $isCashSale = false;
+    if (isset($cashAccountId) && $accountId == $cashAccountId) {
+        $isCashSale = true;
+    }
     
     if (empty($accountId)) {
         $error = t('please_select_customer');
@@ -41,10 +87,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $totalAmount = 0;
             $validItems = [];
             for ($i = 0; $i < count($itemIds); $i++) {
-                if (!empty($itemIds[$i]) && !empty($quantities[$i]) && !empty($rates[$i])) {
+                if (!empty($itemIds[$i]) && !empty($wt2s[$i]) && !empty($rates[$i])) {
                     $itemId = intval($itemIds[$i]);
-                    $qty = floatval($quantities[$i]);
-                    $rate = floatval($rates[$i]);
+                    $qty = floatval($qtys[$i] ?? 0);
+                    $narch = floatval($narchs[$i] ?? 0);
+                    $bag = floatval($bags[$i] ?? 0);
+                    $wt = floatval($wts[$i] ?? 0);
+                    $kate = floatval($kates[$i] ?? 0);
+                    $wt2 = floatval($wt2s[$i] ?? 0);
+                    $rate = floatval($rates[$i] ?? 0);
+                    $amount = floatval($amounts[$i] ?? 0);
                     
                     // Check stock
                     $stmt = $db->prepare("SELECT current_stock, item_name FROM items WHERE id = ?");
@@ -55,17 +107,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         throw new Exception(t('item_not_found'));
                     }
                     
-                    if ($item['current_stock'] < $qty) {
-                        throw new Exception($item['item_name'] . ' ' . t('insufficient_stock'));
+                    // Check stock - allow sale but track warnings (use wt2 as quantity for stock check)
+                    $currentStock = floatval($item['current_stock']);
+                    $stockShortage = 0;
+                    if ($currentStock < $wt2) {
+                        $stockShortage = $wt2 - $currentStock;
                     }
                     
-                    $amount = $qty * $rate;
                     $totalAmount += $amount;
                     $validItems[] = [
                         'item_id' => $itemId,
-                        'quantity' => $qty,
+                        'qty' => $qty,
+                        'narch' => $narch,
+                        'bag' => $bag,
+                        'wt' => $wt,
+                        'kate' => $kate,
+                        'wt2' => $wt2,
                         'rate' => $rate,
-                        'amount' => $amount
+                        'amount' => $amount,
+                        'quantity' => $wt2, // Use net weight for stock tracking
+                        'current_stock' => $currentStock,
+                        'stock_shortage' => $stockShortage,
+                        'item_name' => $item['item_name']
                     ];
                 }
             }
@@ -77,24 +140,77 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $netAmount = $totalAmount - $discount;
             $balanceAmount = $netAmount - $paidAmount;
             
-            // Generate sale number
-            $stmt = $db->query("SELECT MAX(id) as max_id FROM sales");
-            $maxId = $stmt->fetch()['max_id'] ?? 0;
-            $saleNo = generateCode('SAL', $maxId);
+            // Generate sale number (Sal01, Sal02, etc.) or use provided one
+            $saleNo = trim($_POST['sale_no'] ?? '');
+            if (empty($saleNo)) {
+                $stmt = $db->query("SELECT MAX(id) as max_id FROM sales");
+                $maxId = $stmt->fetch()['max_id'] ?? 0;
+                $nextNumber = $maxId + 1;
+                $saleNo = 'Sal' . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
+            } else {
+                // Check if sale_no already exists
+                $stmt = $db->prepare("SELECT id FROM sales WHERE sale_no = ?");
+                $stmt->execute([$saleNo]);
+                if ($stmt->fetch()) {
+                    throw new Exception(t('sale_no_already_exists'));
+                }
+            }
+            
+            // Handle cash sale - automatically set paid amount equal to net amount
+            if ($isCashSale) {
+                $paidAmount = $netAmount; // Set paid amount equal to net amount for cash sales
+                $balanceAmount = 0; // No balance for cash sales
+            }
+            
+            // Get account phone if not provided
+            if (empty($phone)) {
+                $stmt = $db->prepare("SELECT phone, mobile FROM accounts WHERE id = ?");
+                $stmt->execute([$accountId]);
+                $accountInfo = $stmt->fetch();
+                if ($accountInfo && !empty($accountInfo['phone'])) {
+                    $phone = $accountInfo['phone'];
+                } elseif ($accountInfo && !empty($accountInfo['mobile'])) {
+                    $phone = $accountInfo['mobile'];
+                }
+            }
             
             // Insert sale
-            $stmt = $db->prepare("INSERT INTO sales (sale_no, sale_date, account_id, total_amount, discount, net_amount, paid_amount, balance_amount, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$saleNo, $saleDate, $accountId, $totalAmount, $discount, $netAmount, $paidAmount, $balanceAmount, $remarks, $_SESSION['user_id']]);
+            try {
+                $stmt = $db->prepare("INSERT INTO sales (sale_no, sale_date, account_id, location, details, phone, bilti, total_amount, discount, net_amount, paid_amount, balance_amount, bardana, netcash, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$saleNo, $saleDate, $accountId, $location, $details, $phone, $bilti, $totalAmount, $discount, $netAmount, $paidAmount, $balanceAmount, $bardana, $netcash, $remarks, $_SESSION['user_id']]);
+            } catch (PDOException $e) {
+                // Fallback if new columns don't exist yet
+                if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                    $stmt = $db->prepare("INSERT INTO sales (sale_no, sale_date, account_id, total_amount, discount, net_amount, paid_amount, balance_amount, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$saleNo, $saleDate, $accountId, $totalAmount, $discount, $netAmount, $paidAmount, $balanceAmount, $remarks, $_SESSION['user_id']]);
+                } else {
+                    throw $e;
+                }
+            }
             
             $saleId = $db->lastInsertId();
             
+            // Collect stock warnings
+            $stockWarnings = [];
+            
             // Insert sale items and update stock
             foreach ($validItems as $item) {
-                $stmt = $db->prepare("INSERT INTO sale_items (sale_id, item_id, quantity, rate, amount) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$saleId, $item['item_id'], $item['quantity'], $item['rate'], $item['amount']]);
+                // Insert with new calculation fields structure (quantity = wt2 for consistency)
+                $stmt = $db->prepare("INSERT INTO sale_items (sale_id, item_id, qty, narch, bag, wt, kate, wt2, rate, amount, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$saleId, $item['item_id'], $item['qty'], $item['narch'], $item['bag'], $item['wt'], $item['kate'], $item['wt2'], $item['rate'], $item['amount'], $item['wt2']]);
                 
-                // Update item stock
-                $stmt = $db->prepare("UPDATE items SET current_stock = current_stock - ? WHERE id = ?");
+                // Check for stock shortage before updating
+                if ($item['stock_shortage'] > 0) {
+                    $stockWarnings[] = [
+                        'item_name' => $item['item_name'],
+                        'available_stock' => $item['current_stock'],
+                        'required_quantity' => $item['quantity'],
+                        'shortage' => $item['stock_shortage']
+                    ];
+                }
+                
+                // Update item stock (reduce for sale) - prevent negative stock (minimum 0)
+                $stmt = $db->prepare("UPDATE items SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?");
                 $stmt->execute([$item['quantity'], $item['item_id']]);
                 
                 // Add to stock movements
@@ -106,14 +222,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->execute([$item['item_id'], $saleDate, $saleId, $item['quantity'], $currentStock]);
             }
             
-            // Add transaction if paid
-            if ($paidAmount > 0) {
-                $stmt = $db->prepare("INSERT INTO transactions (transaction_date, transaction_type, account_id, amount, narration, reference_type, reference_id, created_by) VALUES (?, 'credit', ?, ?, ?, 'sale', ?, ?)");
-                $stmt->execute([$saleDate, $accountId, $paidAmount, "Sale: $saleNo", $saleId, $_SESSION['user_id']]);
+            // Handle transactions properly for credit/debit accounting:
+            // 1. Create DEBIT transaction for the sale receivable (net_amount - what customer owes)
+            // 2. Create CREDIT transaction for payment received (reduces receivable)
+            // This ensures proper double-entry: DEBIT (receivable) - CREDIT (payment) = Balance
+            
+            // Create DEBIT transaction for receivable (customer owes us this amount)
+            // DEBIT increases receivable (asset) - customer owes us
+            if ($netAmount > 0) {
+                $stmt = $db->prepare("INSERT INTO transactions (transaction_date, transaction_type, account_id, amount, narration, reference_type, reference_id, created_by) VALUES (?, 'debit', ?, ?, ?, 'sale', ?, ?)");
+                $stmt->execute([$saleDate, $accountId, $netAmount, "Sale Receivable: $saleNo", $saleId, $_SESSION['user_id']]);
             }
             
+            // Create CREDIT transaction for payment received (reduces receivable)
+            // CREDIT reduces receivable - customer paid us, reduces what they owe
+            if ($paidAmount > 0) {
+                $stmt = $db->prepare("INSERT INTO transactions (transaction_date, transaction_type, account_id, amount, narration, reference_type, reference_id, created_by) VALUES (?, 'credit', ?, ?, ?, 'sale', ?, ?)");
+                $stmt->execute([$saleDate, $accountId, $paidAmount, "Sale Payment: $saleNo", $saleId, $_SESSION['user_id']]);
+            }
+            
+            // Net effect: DEBIT (net_amount) - CREDIT (paid_amount) = balance_amount (what customer still owes)
+            
             $db->commit();
+            
+            // Build success message with warnings if any
             $success = t('sale_added_success');
+            if (!empty($stockWarnings)) {
+                $warningMsg = '<br><strong>' . t('stock_warning') . ':</strong><br>';
+                foreach ($stockWarnings as $warning) {
+                    $warningMsg .= $warning['item_name'] . ': ' . t('available_stock') . ' = ' . $warning['available_stock'] . ', ' . t('required_quantity') . ' = ' . $warning['required_quantity'] . ', ' . t('stock_shortage') . ' = ' . $warning['shortage'] . '<br>';
+                }
+                $warningMsg .= '<small>' . t('low_stock_warning') . '</small>';
+                $success .= $warningMsg;
+            }
+            
             $_POST = [];
         } catch (Exception $e) {
             $db->rollBack();
@@ -124,6 +266,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 include '../includes/header.php';
 ?>
+
+<style>
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.form-label .text-danger {
+    margin-left: 2px;
+}
+[dir="rtl"] .form-label .text-danger {
+    margin-left: 0;
+    margin-right: 2px;
+}
+/* Item row styling */
+.item-row {
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #fff;
+}
+.item-row:hover {
+    background-color: #f8f9fa;
+}
+.item-row input[readonly] {
+    background-color: #e9ecef;
+}
+/* Header row styling */
+.row.mb-2:first-of-type {
+    font-weight: 600;
+    background-color: #f8f9fa !important;
+}
+/* Button styling */
+.enter-btn {
+    width: 100%;
+}
+.remove-row-btn {
+    width: 100%;
+    margin-top: 5px;
+}
+/* Stock warning notification styling */
+#stockWarningMessage {
+    background-color: #f8d7da !important;
+    border: 1px solid #f5c2c7 !important;
+    color: #842029 !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
+    opacity: 1 !important;
+}
+#stockWarningMessage strong,
+#stockWarningMessage span,
+#stockWarningMessage small {
+    color: #842029 !important;
+    font-weight: 600;
+}
+#stockWarningMessage .btn-close {
+    filter: brightness(0.5);
+    opacity: 1;
+}
+/* Input field styling */
+.item-row input.form-control {
+    font-size: 14px;
+}
+</style>
 
 <div class="page-header">
     <h1><i class="fas fa-cash-register"></i> <?php echo t('add_sale'); ?></h1>
@@ -151,19 +358,30 @@ include '../includes/header.php';
                 <?php endif; ?>
                 
                 <form method="POST" action="" id="saleForm">
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
+                    <div class="row mb-3 align-items-end">
+                        <div class="col-md-2">
                             <label class="form-label"><?php echo t('date'); ?> <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="sale_date" value="<?php echo $_POST['sale_date'] ?? date('Y-m-d'); ?>" required>
                         </div>
                         
-                        <div class="col-md-5 mb-3">
-                            <label class="form-label"><?php echo t('customer'); ?> <span class="text-danger">*</span></label>
+                        <div class="col-md-2">
+                            <label class="form-label"><?php echo t('inv_number'); ?></label>
+                            <input type="text" class="form-control" name="sale_no" id="sale_no" value="<?php echo $_POST['sale_no'] ?? ''; ?>" placeholder="<?php echo $nextSaleNo ?? 'Sal01'; ?>">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label"><?php echo t('name_party'); ?> <span class="text-danger">*</span></label>
                             <select class="form-select" name="account_id" id="account_id" required>
                                 <option value="">-- <?php echo t('select'); ?> --</option>
+                                <option value="<?php echo $cashAccountId ?? 0; ?>" style="font-weight: bold; color: #0d6efd;">
+                                    <?php echo t('cash_sale'); ?>
+                                </option>
                                 <?php 
                                 $selectedAccountId = $_POST['account_id'] ?? $_GET['account_id'] ?? '';
-                                foreach ($customers as $customer): ?>
+                                foreach ($customers as $customer): 
+                                    // Skip cash account if it's already in the list
+                                    if (isset($cashAccountId) && $customer['id'] == $cashAccountId) continue;
+                                ?>
                                     <option value="<?php echo $customer['id']; ?>" <?php echo ($selectedAccountId == $customer['id']) ? 'selected' : ''; ?>>
                                         <?php echo displayAccountNameFull($customer); ?>
                                     </option>
@@ -171,78 +389,113 @@ include '../includes/header.php';
                             </select>
                         </div>
                         
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label"><?php echo t('location'); ?></label>
+                            <input type="text" class="form-control" name="location" id="location" value="<?php echo $_POST['location'] ?? ''; ?>" placeholder="<?php echo t('location'); ?>">
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label"><?php echo t('details'); ?></label>
+                            <input type="text" class="form-control" name="details" id="details" value="<?php echo $_POST['details'] ?? ''; ?>" placeholder="<?php echo t('details'); ?>">
+                        </div>
+                        
+                        <div class="col-md-1">
+                            <label class="form-label"><?php echo t('phone'); ?></label>
+                            <input type="text" class="form-control" name="phone" id="phone" value="<?php echo $_POST['phone'] ?? ''; ?>" placeholder="<?php echo t('phone'); ?>">
+                        </div>
+                        
+                        <div class="col-md-1">
+                            <label class="form-label"><?php echo t('bilti'); ?></label>
+                            <input type="text" class="form-control" name="bilti" id="bilti" value="<?php echo $_POST['bilti'] ?? ''; ?>" placeholder="<?php echo t('bilti'); ?>">
+                        </div>
+                    </div>
+                    
+                    <?php /* Commented out Remarks field - user requested
+                    <div class="row mb-4">
+                        <div class="col-md-12">
                             <label class="form-label"><?php echo t('remarks'); ?></label>
                             <input type="text" class="form-control" name="remarks" value="<?php echo $_POST['remarks'] ?? ''; ?>">
                         </div>
                     </div>
+                    */ ?>
                     
                     <div class="card mb-4">
                         <div class="card-header bg-light">
                             <h6 class="mb-0"><?php echo t('item_details'); ?></h6>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table" id="itemsTable">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 35%;"><?php echo t('items'); ?></th>
-                                            <th style="width: 15%;"><?php echo t('quantity'); ?></th>
-                                            <th style="width: 15%;"><?php echo t('rate'); ?></th>
-                                            <th style="width: 15%;"><?php echo t('amount'); ?></th>
-                                            <th style="width: 20%;"><?php echo t('actions'); ?></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="itemsBody">
-                                        <tr>
-                                            <td>
-                                                <select class="form-select item-select" name="item_id[]" required>
-                                                    <option value="">-- <?php echo t('select'); ?> --</option>
-                                                    <?php foreach ($items as $item): ?>
-                                                        <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>" data-stock="<?php echo $item['current_stock']; ?>">
-                                                            <?php echo displayItemNameFull($item); ?> (<?php echo t('stock_label'); ?>: <?php echo $item['current_stock']; ?>)
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </td>
-                                            <td><input type="number" step="0.01" class="form-control quantity" name="quantity[]" required></td>
-                                            <td><input type="number" step="0.01" class="form-control rate" name="rate[]" required></td>
-                                            <td><input type="text" class="form-control amount" readonly></td>
-                                            <td><button type="button" class="btn btn-danger btn-sm remove-row"><i class="fas fa-times"></i></button></td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td colspan="3" class="text-end"><strong><?php echo t('total'); ?>:</strong></td>
-                                            <td><input type="text" class="form-control" id="total_amount" readonly value="0.00"></td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="text-end"><strong><?php echo t('discount'); ?>:</strong></td>
-                                            <td><input type="number" step="0.01" class="form-control" name="discount" id="discount" value="0"></td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="text-end"><strong><?php echo t('net_amount'); ?>:</strong></td>
-                                            <td><input type="text" class="form-control" id="net_amount" readonly value="0.00"></td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="text-end"><strong><?php echo t('receipt'); ?>:</strong></td>
-                                            <td><input type="number" step="0.01" class="form-control" name="paid_amount" id="paid_amount" value="0"></td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="text-end"><strong><?php echo t('balance_amount'); ?>:</strong></td>
-                                            <td><input type="text" class="form-control" id="balance_amount" readonly value="0.00"></td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                            <!-- Header Row -->
+                            <div class="row mb-2" style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                                <div class="col-md-2 text-center"><strong><?php echo t('item_name'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('qty'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('toda'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('bharti'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('weight'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('cut'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('net'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('rate'); ?></strong></div>
+                                <div class="col-md-2 text-center"><strong><?php echo t('amount'); ?></strong></div>
+                                <div class="col-md-1 text-center"><strong><?php echo t('actions'); ?></strong></div>
                             </div>
-                            <button type="button" class="btn btn-success btn-sm" id="addRow">
-                                <i class="fas fa-plus"></i> <?php echo t('add_item'); ?>
-                            </button>
+                            
+                            <!-- Items Container -->
+                            <div id="itemsContainer">
+                                <!-- First Input Row -->
+                                <div class="row mb-2 item-row">
+                                    <div class="col-md-2">
+                                        <input type="text" class="form-control itemname" name="itemname[]" list="pname" placeholder="<?php echo t('item_name'); ?>" autocomplete="off">
+                                        <input type="hidden" class="item-id" name="item_id[]">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control qty" name="qty[]" placeholder="<?php echo t('qty'); ?>" onkeyup="calwe(this);" oninput="calwe(this);">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control narch" name="narch[]" placeholder="<?php echo t('toda'); ?>" onkeyup="calwe(this);" oninput="calwe(this);">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control bag" name="bag[]" placeholder="<?php echo t('bharti'); ?>" onkeyup="calwe(this);" oninput="calwe(this);">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control wt" name="wt[]" placeholder="<?php echo t('weight'); ?>" readonly>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control kate" name="kate[]" placeholder="<?php echo t('cut'); ?>" onkeyup="calamo(this);" oninput="calamo(this);">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control wt2" name="wt2[]" placeholder="<?php echo t('net'); ?>" readonly>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" class="form-control rate" name="rate[]" placeholder="<?php echo t('rate'); ?>" onkeyup="calamo(this);" oninput="calamo(this);">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" step="0.01" class="form-control amount" name="amount[]" placeholder="<?php echo t('amount'); ?>" readonly>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-success btn-sm enter-btn" onclick="addNewRow(this);">
+                                            <i class="fas fa-plus"></i> Enter
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm remove-row-btn" onclick="removeRow(this);" style="display:none;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Datalist for items -->
+                            <datalist id="pname">
+                                <?php foreach ($items as $item): ?>
+                                    <option value="<?php echo htmlspecialchars($item['item_name']); ?>" data-id="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>" data-stock="<?php echo $item['current_stock']; ?>">
+                                <?php endforeach; ?>
+                            </datalist>
+                            
+                            <!-- Hidden fields for backend processing -->
+                            <input type="hidden" name="discount" id="discount" value="0">
+                            <input type="hidden" name="paid_amount" id="paid_amount" value="0">
+                            <input type="hidden" name="total_amount" id="total_amount" value="0">
+                            <input type="hidden" name="net_amount" id="net_amount" value="0">
+                            <input type="hidden" name="balance_amount" id="balance_amount" value="0">
+                            <input type="hidden" name="bardana" id="bardana" value="0">
+                            <input type="hidden" name="netcash" id="netcash" value="0">
                         </div>
                     </div>
                     
@@ -263,103 +516,203 @@ include '../includes/header.php';
 <!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Add new row
-    $('#addRow').click(function() {
-        var newRow = `
-            <tr>
-                <td>
-                    <select class="form-select item-select" name="item_id[]" required>
-                        <option value="">-- <?php echo t('select'); ?> --</option>
-                        <?php foreach ($items as $item): ?>
-                            <option value="<?php echo $item['id']; ?>" data-rate="<?php echo $item['sale_rate']; ?>" data-stock="<?php echo $item['current_stock']; ?>">
-                                <?php echo htmlspecialchars($item['item_name']); ?> (<?php echo t('stock_label'); ?>: <?php echo $item['current_stock']; ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </td>
-                <td><input type="number" step="0.01" class="form-control quantity" name="quantity[]" required></td>
-                <td><input type="number" step="0.01" class="form-control rate" name="rate[]" required></td>
-                <td><input type="text" class="form-control amount" readonly></td>
-                <td><button type="button" class="btn btn-danger btn-sm remove-row"><i class="fas fa-times"></i></button></td>
-            </tr>
-        `;
-        $('#itemsBody').append(newRow);
+// Format number helper
+function formatNumber(num) {
+    if (!num) return '0.00';
+    num = parseFloat(num);
+    if (isNaN(num)) return '0.00';
+    if (num % 1 === 0) {
+        return num.toString();
+    }
+    return num.toFixed(2);
+}
+
+// Calculate weight: wt = qty + narch + bag
+// Formula: Weight = Qty + Toda + Bharti
+function calwe(input) {
+    var row = $(input).closest('.item-row');
+    var qty = parseFloat(row.find('.qty').val()) || 0;
+    var narch = parseFloat(row.find('.narch').val()) || 0;
+    var bag = parseFloat(row.find('.bag').val()) || 0;
+    
+    // Formula: wt = qty + narch + bag
+    var wt = qty + narch + bag;
+    row.find('.wt').val(formatNumber(wt));
+    
+    // Also trigger calamo to update net weight and amount
+    calamo(input);
+}
+
+// Calculate net weight and amount: wt2 = wt - kate, amount = wt2 * rate
+// Formula: Net = Weight - Cut, Amount = Net * Rate
+function calamo(input) {
+    var row = $(input).closest('.item-row');
+    var wt = parseFloat(row.find('.wt').val()) || 0;
+    var kate = parseFloat(row.find('.kate').val()) || 0;
+    var rate = parseFloat(row.find('.rate').val()) || 0;
+    
+    // Formula: wt2 = wt - kate (Net = Weight - Cut)
+    var wt2 = wt - kate;
+    if (wt2 < 0) wt2 = 0; // Ensure non-negative
+    row.find('.wt2').val(formatNumber(wt2));
+    
+    // Formula: amount = wt2 * rate (Amount = Net * Rate)
+    var amount = wt2 * rate;
+    row.find('.amount').val(formatNumber(amount));
+    
+    // Update grand total (updates hidden fields for backend)
+    calculateTotal();
+}
+
+// Handle item name selection
+function cal_gamo(input) {
+    var row = $(input).closest('.item-row');
+    var itemName = $(input).val();
+    
+    // Find matching option in datalist
+    var option = $('#pname option').filter(function() {
+        return $(this).val().toLowerCase() === itemName.toLowerCase();
     });
     
-    // Remove row
-    $(document).on('click', '.remove-row', function() {
-        if ($('#itemsBody tr').length > 1) {
-            $(this).closest('tr').remove();
-            calculateTotal();
-        } else {
-            alert('<?php echo t('please_add_item'); ?>');
-        }
-    });
-    
-    // Check stock when quantity changes
-    $(document).on('input', '.quantity', function() {
-        var row = $(this).closest('tr');
-        var qty = parseFloat($(this).val()) || 0;
-        var stock = parseFloat(row.find('.item-select option:selected').data('stock')) || 0;
+    if (option.length > 0) {
+        var itemId = option.data('id');
+        var rate = option.data('rate') || 0;
+        var stock = option.data('stock') || 0;
         
-        if (qty > stock) {
-            alert('<?php echo t('insufficient_stock'); ?>! <?php echo t('current_stock_label'); ?>: ' + stock);
-            $(this).val(stock);
-            qty = stock;
-        }
+        row.find('.item-id').val(itemId);
         
-        calculateRowAmount(row);
-    });
+        // Show stock warning if needed (optional - can be removed if not needed)
+        // Optionally set rate placeholder (user can still change it)
+        // row.find('.rate').attr('placeholder', formatNumber(rate));
+    } else {
+        // Clear item ID if no match found
+        row.find('.item-id').val('');
+    }
+}
+
+// Add new row
+function addNewRow(btn) {
+    var currentRow = $(btn).closest('.item-row');
+    var newRow = currentRow.clone();
     
-    // Calculate amount
-    function calculateRowAmount(row) {
-        var qty = parseFloat(row.find('.quantity').val()) || 0;
-        var rate = parseFloat(row.find('.rate').val()) || 0;
-        var amount = qty * rate;
-        row.find('.amount').val(amount.toFixed(2));
+    // Clear all input values in new row
+    newRow.find('input[type="text"], input[type="number"]').val('');
+    newRow.find('.item-id').val('');
+    
+    // Show remove button in new row
+    newRow.find('.remove-row-btn').show();
+    
+    // Hide enter button in current row, show remove button
+    currentRow.find('.enter-btn').hide();
+    currentRow.find('.remove-row-btn').show();
+    
+    // Insert new row after current row
+    currentRow.after(newRow);
+    
+    // Focus on item name in new row
+    newRow.find('.itemname').focus();
+}
+
+// Remove row
+function removeRow(btn) {
+    var row = $(btn).closest('.item-row');
+    if ($('.item-row').length > 1) {
+        row.remove();
         calculateTotal();
+    } else {
+        alert('<?php echo t('please_add_item'); ?>');
     }
-    
-    $(document).on('input', '.rate', function() {
-        calculateRowAmount($(this).closest('tr'));
+}
+
+// Calculate grand total (for hidden fields used in backend)
+function calculateTotal() {
+    var total = 0;
+    $('.amount').each(function() {
+        var val = parseFloat($(this).val()) || 0;
+        total += val;
     });
     
-    // Set rate when item selected
-    $(document).on('change', '.item-select', function() {
-        var row = $(this).closest('tr');
-        var rate = $(this).find('option:selected').data('rate');
-        var stock = $(this).find('option:selected').data('stock');
-        
-        if (rate) {
-            row.find('.rate').val(rate);
-        }
-        
-        if (stock !== undefined) {
-            row.find('.quantity').attr('max', stock);
-        }
-        
-        calculateRowAmount(row);
+    // Update hidden fields for backend processing
+    $('#total_amount').val(total);
+    
+    var discount = parseFloat($('#discount').val()) || 0;
+    var netAmount = total - discount;
+    $('#net_amount').val(netAmount);
+    
+    var paid = parseFloat($('#paid_amount').val()) || 0;
+    var balance = netAmount - paid;
+    $('#balance_amount').val(balance);
+}
+
+$(document).ready(function() {
+    // Initialize totals on page load
+    calculateTotal();
+    
+    // Handle item name input with datalist
+    $(document).on('input change blur', '.itemname', function() {
+        cal_gamo(this);
     });
     
-    // Calculate totals
-    function calculateTotal() {
-        var total = 0;
-        $('.amount').each(function() {
-            total += parseFloat($(this).val()) || 0;
+    // Also handle when user selects from datalist dropdown
+    $(document).on('change', '.itemname', function() {
+        setTimeout(function() {
+            cal_gamo(this);
+        }.bind(this), 100);
+    });
+    
+    // Customer data for auto-filling phone
+    var customers = <?php echo json_encode(array_map(function($c) { return ['id' => $c['id'], 'phone' => $c['phone'] ?? '', 'mobile' => $c['mobile'] ?? '']; }, $customers)); ?>;
+    
+    // Handle customer selection - auto-set paid amount for cash sale and auto-fill phone
+    $('#account_id').on('change', function() {
+        var selectedValue = $(this).val();
+        var cashAccountId = <?php echo $cashAccountId ?? 0; ?>;
+        
+        // Auto-fill phone from customer data
+        if (selectedValue && selectedValue != cashAccountId) {
+            var customer = customers.find(function(c) { return c.id == selectedValue; });
+            if (customer) {
+                var phone = customer.phone || customer.mobile || '';
+                $('#phone').val(phone);
+            }
+        } else {
+            $('#phone').val('');
+        }
+        
+        if (selectedValue == cashAccountId && cashAccountId > 0) {
+            // For cash sale, automatically set paid amount equal to net amount
+            setTimeout(function() {
+                calculateTotal(); // Calculate totals first
+                var netAmount = parseFloat($('#net_amount').val()) || 0;
+                $('#paid_amount').val(netAmount); // Set paid amount for cash sale
+                calculateTotal(); // Recalculate balance
+            }, 100);
+        } else {
+            // For credit sale, reset paid amount to 0
+            $('#paid_amount').val(0);
+            calculateTotal();
+        }
+    });
+    
+    // Prevent form submission if no items
+    $('#saleForm').on('submit', function(e) {
+        var hasItems = false;
+        $('.item-row').each(function() {
+            var itemId = $(this).find('.item-id').val();
+            var wt2 = parseFloat($(this).find('.wt2').val()) || 0;
+            var rate = parseFloat($(this).find('.rate').val()) || 0;
+            if (itemId && wt2 > 0 && rate > 0) {
+                hasItems = true;
+                return false;
+            }
         });
-        $('#total_amount').val(total.toFixed(2));
         
-        var discount = parseFloat($('#discount').val()) || 0;
-        var netAmount = total - discount;
-        $('#net_amount').val(netAmount.toFixed(2));
-        
-        var paid = parseFloat($('#paid_amount').val()) || 0;
-        var balance = netAmount - paid;
-        $('#balance_amount').val(balance.toFixed(2));
-    }
-    
-    $('#discount, #paid_amount').on('input', calculateTotal);
+        if (!hasItems) {
+            e.preventDefault();
+            alert('<?php echo t('please_add_item'); ?>');
+            return false;
+        }
+    });
 });
 </script>
 

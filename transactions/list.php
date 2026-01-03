@@ -54,15 +54,53 @@ try {
     $stmt = $db->prepare("SELECT t.*, a.account_name, a.account_name_urdu FROM transactions t 
                          LEFT JOIN accounts a ON t.account_id = a.id 
                          $where ORDER BY t.id DESC LIMIT ? OFFSET ?");
-    $params[] = $limit;
-    $params[] = $offset;
-    $stmt->execute($params);
+    $paramsForQuery = $params;
+    $paramsForQuery[] = $limit;
+    $paramsForQuery[] = $offset;
+    $stmt->execute($paramsForQuery);
     $transactions = $stmt->fetchAll();
+    
+    // Calculate totals and counts for Cash Debit, Cash Credit, and Journal
+    // Cash Debit: transaction_type = 'debit' AND (reference_type IS NULL OR reference_type != 'journal')
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $where AND t.transaction_type = 'debit' 
+                         AND (t.reference_type IS NULL OR t.reference_type != 'journal')");
+    $stmt->execute($params);
+    $cashDebitResult = $stmt->fetch();
+    $cashDebitTotal = $cashDebitResult['total'] ?? 0;
+    $cashDebitCount = $cashDebitResult['count'] ?? 0;
+    
+    // Cash Credit: transaction_type = 'credit' AND (reference_type IS NULL OR reference_type != 'journal')
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total, COUNT(*) as count FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $where AND t.transaction_type = 'credit' 
+                         AND (t.reference_type IS NULL OR t.reference_type != 'journal')");
+    $stmt->execute($params);
+    $cashCreditResult = $stmt->fetch();
+    $cashCreditTotal = $cashCreditResult['total'] ?? 0;
+    $cashCreditCount = $cashCreditResult['count'] ?? 0;
+    
+    // Journal: reference_type = 'journal' (count unique journal vouchers, sum amounts)
+    $stmt = $db->prepare("SELECT COALESCE(SUM(t.amount), 0) as total, COUNT(DISTINCT SUBSTRING_INDEX(t.transaction_no, '-', 1)) as count FROM transactions t 
+                         LEFT JOIN accounts a ON t.account_id = a.id 
+                         $where AND t.reference_type = 'journal'");
+    $stmt->execute($params);
+    $journalResult = $stmt->fetch();
+    $journalTotal = $journalResult['total'] ?? 0;
+    $journalCount = $journalResult['count'] ?? 0;
     
 } catch (PDOException $e) {
     $accounts = [];
     $transactions = [];
     $totalPages = 0;
+    $totalRecords = 0;
+    $cashDebitTotal = 0;
+    $cashDebitCount = 0;
+    $cashCreditTotal = 0;
+    $cashCreditCount = 0;
+    $journalTotal = 0;
+    $journalCount = 0;
 }
 
 include '../includes/header.php';
@@ -77,9 +115,8 @@ include '../includes/header.php';
     transform: none !important;
 }
 .card-header {
-    animation: none !important;
-    padding: 12px 20px !important;
-    font-size: 16px !important;
+    padding: 20px 25px !important;
+    font-size: 18px !important;
 }
 .card-header .form-label {
     margin-bottom: 2px !important;
@@ -116,9 +153,11 @@ include '../includes/header.php';
             <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#creditModal">
                 <i class="fas fa-arrow-up"></i> <?php echo t('cash_credit_type'); ?>
             </button>
+            <?php /* Commented out Journal button - user requested
             <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#journalModal">
                 <i class="fas fa-exchange-alt"></i> <?php echo t('journal_type'); ?>
             </button>
+            */ ?>
         </div>
     </div>
 </div>
@@ -129,7 +168,7 @@ include '../includes/header.php';
             <div class="card-header">
                 <div class="row align-items-center">
                     <div class="col-md-4">
-                        <h5 class="mb-0"><?php echo t('all_transactions'); ?></h5>
+                        <h5 class="mb-0"><?php echo t('all_transactions'); ?> <span class="badge bg-primary"><?php echo $totalRecords ?? 0; ?></span></h5>
                     </div>
                     <div class="col-md-8">
                         <form method="GET" class="row g-2 align-items-end">
@@ -143,7 +182,9 @@ include '../includes/header.php';
                                     <option value=""><?php echo t('all_types'); ?></option>
                                     <option value="debit" <?php echo $type == 'debit' ? 'selected' : ''; ?>><?php echo t('cash_debit_type'); ?></option>
                                     <option value="credit" <?php echo $type == 'credit' ? 'selected' : ''; ?>><?php echo t('cash_credit_type'); ?></option>
+                                    <?php /* Commented out Journal option - user requested
                                     <option value="journal" <?php echo $type == 'journal' ? 'selected' : ''; ?>><?php echo t('journal_type'); ?></option>
+                                    */ ?>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -168,41 +209,109 @@ include '../includes/header.php';
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th><?php echo t('transaction_no'); ?></th>
+                                <th>T.No</th>
                                 <th><?php echo t('date'); ?></th>
-                                <th><?php echo t('type'); ?></th>
                                 <th><?php echo t('account_name'); ?></th>
+                                <th><?php echo t('cash_debit_type'); ?></th>
+                                <th><?php echo t('cash_credit_type'); ?></th>
+                                <?php /* Commented out JOURNAL column - user requested
+                                <th><?php echo t('journal_type'); ?></th>
+                                */ ?>
                                 <th><?php echo t('amount'); ?></th>
                                 <th><?php echo t('description'); ?></th>
+                                <th><?php echo t('actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($transactions)): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center"><?php echo t('no_records'); ?></td>
+                                    <td colspan="8" class="text-center"><?php echo t('no_records'); ?></td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($transactions as $transaction): ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($transaction['transaction_no'] ?? '-'); ?></td>
                                         <td><?php echo formatDate($transaction['transaction_date']); ?></td>
+                                        <td><?php echo !empty($transaction['account_name']) ? displayAccountNameFull($transaction) : '-'; ?></td>
                                         <td>
                                             <?php
-                                            $typeLabels = [
-                                                'debit' => '<span class="badge bg-danger">' . t('debit') . '</span>',
-                                                'credit' => '<span class="badge bg-success">' . t('credit') . '</span>',
-                                                'journal' => '<span class="badge bg-info">' . t('journal') . '</span>'
-                                            ];
-                                            echo $typeLabels[$transaction['transaction_type']] ?? $transaction['transaction_type'];
+                                            // Show Cash Debit if transaction_type is debit and not journal
+                                            if ($transaction['transaction_type'] == 'debit' && ($transaction['reference_type'] ?? '') != 'journal') {
+                                                echo '<span class="badge bg-danger">' . formatCurrency($transaction['amount']) . '</span>';
+                                            } else {
+                                                echo '-';
+                                            }
                                             ?>
                                         </td>
-                                        <td><?php echo !empty($transaction['account_name']) ? displayAccountNameFull($transaction) : '-'; ?></td>
+                                        <td>
+                                            <?php
+                                            // Show Cash Credit if transaction_type is credit and not journal
+                                            if ($transaction['transaction_type'] == 'credit' && ($transaction['reference_type'] ?? '') != 'journal') {
+                                                echo '<span class="badge bg-success">' . formatCurrency($transaction['amount']) . '</span>';
+                                            } else {
+                                                echo '-';
+                                            }
+                                            ?>
+                                        </td>
+                                        <?php /* Commented out JOURNAL column - user requested
+                                        <td>
+                                            <?php
+                                            // Show Journal if reference_type is journal
+                                            if (($transaction['reference_type'] ?? '') == 'journal') {
+                                                echo '<span class="badge bg-info">' . formatCurrency($transaction['amount']) . '</span>';
+                                            } else {
+                                                echo '-';
+                                            }
+                                            ?>
+                                        </td>
+                                        */ ?>
                                         <td><strong><?php echo formatCurrency($transaction['amount']); ?></strong></td>
                                         <td><?php echo htmlspecialchars($transaction['narration'] ?? '-'); ?></td>
+                                        <td>
+                                            <?php
+                                            // Determine edit page based on transaction type
+                                            $editUrl = '';
+                                            if ($transaction['transaction_type'] == 'debit' && ($transaction['reference_type'] ?? '') != 'journal') {
+                                                $editUrl = BASE_URL . 'transactions/edit-debit.php?id=' . $transaction['id'];
+                                            } elseif ($transaction['transaction_type'] == 'credit' && ($transaction['reference_type'] ?? '') != 'journal') {
+                                                $editUrl = BASE_URL . 'transactions/edit-credit.php?id=' . $transaction['id'];
+                                            }
+                                            ?>
+                                            <?php if ($editUrl): ?>
+                                                <a href="<?php echo $editUrl; ?>" class="btn btn-sm btn-warning" title="<?php echo t('edit'); ?>">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <button type="button" class="btn btn-sm btn-danger delete-transaction-btn ms-1" data-transaction-id="<?php echo $transaction['id']; ?>" data-transaction-no="<?php echo htmlspecialchars($transaction['transaction_no'] ?? '-'); ?>" title="<?php echo t('delete'); ?>">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end" style="background-color: #cfe2ff;"><strong><?php echo t('total'); ?>:</strong></td>
+                                <td style="background-color: #f8d7da; color: #842029;">
+                                    <strong><?php echo formatCurrency($cashDebitTotal); ?></strong>
+                                    <br><small>(<?php echo $cashDebitCount ?? 0; ?> <?php echo t('transactions'); ?>)</small>
+                                </td>
+                                <td style="background-color: #d1e7dd; color: #0f5132;">
+                                    <strong><?php echo formatCurrency($cashCreditTotal); ?></strong>
+                                    <br><small>(<?php echo $cashCreditCount ?? 0; ?> <?php echo t('transactions'); ?>)</small>
+                                </td>
+                                <?php /* Commented out JOURNAL footer - user requested
+                                <td style="background-color: #cff4fc; color: #055160;">
+                                    <strong><?php echo formatCurrency($journalTotal); ?></strong>
+                                    <br><small>(<?php echo $journalCount ?? 0; ?> <?php echo t('transactions'); ?>)</small>
+                                </td>
+                                */ ?>
+                                <td style="background-color: #cfe2ff;"></td>
+                                <td style="background-color: #cfe2ff;"></td>
+                                <td style="background-color: #cfe2ff;"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
                 
@@ -344,6 +453,7 @@ include '../includes/header.php';
     </div>
 </div>
 
+<?php /* Commented out Journal Modal - user requested
 <!-- Journal Modal -->
 <div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -410,6 +520,7 @@ include '../includes/header.php';
         </div>
     </div>
 </div>
+*/ ?>
 
 <script>
 function saveDebit() {
@@ -547,10 +658,52 @@ document.getElementById('creditModal').addEventListener('hidden.bs.modal', funct
     document.getElementById('credit_date').value = '<?php echo date('Y-m-d'); ?>';
 });
 
+<?php /* Commented out Journal modal event listener - user requested
 document.getElementById('journalModal').addEventListener('hidden.bs.modal', function() {
     document.getElementById('journalForm').reset();
     document.getElementById('journalFormMessage').innerHTML = '';
     document.getElementById('journal_date').value = '<?php echo date('Y-m-d'); ?>';
+});
+*/ ?>
+// Delete transaction functionality
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-transaction-btn')) {
+        const btn = e.target.closest('.delete-transaction-btn');
+        const transactionId = btn.getAttribute('data-transaction-id');
+        const transactionNo = btn.getAttribute('data-transaction-no');
+        
+        if (confirm('<?php echo t('are_you_sure_delete'); ?> Transaction "' + transactionNo + '"?')) {
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch('<?php echo BASE_URL; ?>transactions/delete-ajax.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=' + transactionId
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                showNotification('<?php echo t('error_deleting_transaction'); ?>', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+        }
+    }
 });
 </script>
 
